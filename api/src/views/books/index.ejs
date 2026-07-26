@@ -1,0 +1,36 @@
+<%- include('../partials/header', { title: 'All Books' }) %>
+
+<div class="page-heading">
+  <h1>Your Books</h1>
+  <a class="button primary" href="/books/new">Add Book</a>
+</div>
+
+<% if (books.length === 0) { %>
+  <p class="empty-state">No books yet. <a href="/books/new">Add your first book</a>.</p>
+<% } else { %>
+  <ul class="book-list">
+    <% books.forEach(function (book) { %>
+      <li class="book-card">
+        <% if (book.coverImageUri) { %>
+          <img class="book-card-thumb" src="<%= book.coverImageUri %>" alt="Cover of <%= book.title %>" />
+        <% } else { %>
+          <div class="book-card-thumb book-card-thumb-placeholder" aria-hidden="true">&#128214;</div>
+        <% } %>
+        <div class="book-card-main">
+          <a class="book-title" href="/books/<%= book.id %>"><%= book.title %></a>
+          <span class="book-author">by <%= book.author %></span>
+          <span class="status-badge status-<%= book.status.replace(' ', '-') %>"><%= book.status %></span>
+          <a class="library-link" href="<%= buildLibrarySearchUrl(book.title) %>" target="_blank" rel="noopener noreferrer">🔎 Search library</a>
+        </div>
+        <div class="book-card-actions">
+          <a class="button" href="/books/<%= book.id %>/edit">Edit</a>
+          <form method="POST" action="/books/<%= book.id %>/delete" onsubmit="return confirm('Delete this book?');">
+            <button type="submit" class="button danger">Delete</button>
+          </form>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('../partials/footer') %>

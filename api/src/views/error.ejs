@@ -1,0 +1,9 @@
+<%- include('partials/header', { title: 'Error' }) %>
+
+<div class="empty-state">
+  <h1><%= statusCode %></h1>
+  <p><%= message %></p>
+  <p><a href="/books">&larr; Back to all books</a></p>
+</div>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,19 @@
+<% var warnings = typeof warnings !== 'undefined' ? warnings : []; %>
+<%- include('../partials/header', { title: 'Add Book' }) %>
+
+<div class="page-heading">
+  <h1>Add Book</h1>
+  <a class="button" href="/books/scan">📷 Scan a cover instead</a>
+</div>
+
+<% if (warnings.length > 0) { %>
+  <div class="notice-list">
+    <% warnings.forEach(function (warning) { %>
+      <p class="notice"><%= warning %></p>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('_form', { book: book, errors: errors, action: '/books', submitLabel: 'Add Book' }) %>
+
+<%- include('../partials/footer') %>

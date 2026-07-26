@@ -1,0 +1,27 @@
+<% var warnings = typeof warnings !== 'undefined' ? warnings : []; %>
+<%- include('../partials/header', { title: 'Scan a Cover' }) %>
+
+<h1>Scan a Cover</h1>
+<p class="hint">Take or upload a photo of a book's cover and we'll try to pre-fill the title, author, and cover art for you.</p>
+
+<% if (warnings.length > 0) { %>
+  <div class="notice-list">
+    <% warnings.forEach(function (warning) { %>
+      <p class="notice"><%= warning %></p>
+    <% }) %>
+  </div>
+<% } %>
+
+<form class="book-form" method="POST" action="/books/scan" enctype="multipart/form-data">
+  <div class="field">
+    <label for="cover">Cover photo</label>
+    <input type="file" id="cover" name="cover" accept="image/*" capture="environment" required />
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="button primary">Scan Cover</button>
+    <a class="button" href="/books/new">Enter details manually instead</a>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,44 @@
+<% var errors = typeof errors !== 'undefined' ? errors : {}; %>
+<% var statuses = ['to read', 'owned', 'started', 'finished', 'abandoned']; %>
+
+<form class="book-form" method="POST" action="<%= action %>">
+  <div class="field">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" value="<%= book.title || '' %>" required />
+    <% if (errors.title) { %><p class="field-error"><%= errors.title %></p><% } %>
+  </div>
+
+  <div class="field">
+    <label for="author">Author</label>
+    <input type="text" id="author" name="author" value="<%= book.author || '' %>" required />
+    <% if (errors.author) { %><p class="field-error"><%= errors.author %></p><% } %>
+  </div>
+
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <% statuses.forEach(function (status) { %>
+        <option value="<%= status %>" <%= book.status === status ? 'selected' : '' %>><%= status %></option>
+      <% }) %>
+    </select>
+    <% if (errors.status) { %><p class="field-error"><%= errors.status %></p><% } %>
+  </div>
+
+  <div class="field">
+    <label for="coverImageUri">Cover image URL</label>
+    <% if (book.coverImageUri) { %>
+      <img class="cover-preview" src="<%= book.coverImageUri %>" alt="Cover preview" />
+    <% } %>
+    <input type="text" id="coverImageUri" name="coverImageUri" value="<%= book.coverImageUri || '' %>" />
+  </div>
+
+  <div class="field">
+    <label for="notes">Notes</label>
+    <textarea id="notes" name="notes" rows="4"><%= book.notes || '' %></textarea>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="button primary"><%= submitLabel %></button>
+    <a class="button" href="/books">Cancel</a>
+  </div>
+</form>

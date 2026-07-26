@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Environment (keep .env.example committed)
+.env
+.env.*
+!.env.example
+
+# Test / coverage
+coverage/
+
+# Logs & OS
+*.log
+.DS_Store

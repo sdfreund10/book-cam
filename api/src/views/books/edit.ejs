@@ -1,0 +1,7 @@
+<%- include('../partials/header', { title: 'Edit ' + book.title }) %>
+
+<h1>Edit Book</h1>
+
+<%- include('_form', { book: book, errors: errors, action: '/books/' + book.id + '/edit', submitLabel: 'Save Changes' }) %>
+
+<%- include('../partials/footer') %>
