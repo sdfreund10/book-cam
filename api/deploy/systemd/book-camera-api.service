@@ -1,0 +1,16 @@
+[Unit]
+Description=Book Camera API
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=bookcamera
+WorkingDirectory=__API_ROOT__
+EnvironmentFile=__API_ROOT__/.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
