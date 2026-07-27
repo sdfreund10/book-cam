@@ -99,10 +99,10 @@ fi
 
 cd "$API_ROOT"
 # install the dependencies and build the API
-npm ci
-npm run build
-npm run db:push
-npm prune --omit=dev
+npm ci --silent
+npm run --silent build
+npm run --silent db:push
+npm prune --omit=dev --silent
 chown -R bookcamera:bookcamera "$API_ROOT"
 
 # set up the systemd services

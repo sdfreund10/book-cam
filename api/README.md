@@ -13,10 +13,16 @@ npm run dev
 
 ## Deployment
 
-Initial setup on a fresh Ubuntu DigitalOcean droplet (Node 22, Postgres, nginx, systemd):
+Initial setup on a fresh Ubuntu DigitalOcean droplet (Node 22, Postgres, nginx, systemd).
+
+### 1. Allow the droplet to clone the repo
+
+Create a github access token with read access to the book-cam repository.
+
+### 2. Clone, set up, and start
 
 ```sh
-git clone <repo-url> && cd book-camera/api
+git clone https://<TOKEN>@github.com/sdfreund10/book-cam.git && cd book-cam/api
 sudo ./deploy/setup.sh
 sudo ./deploy/start.sh
 ```
