@@ -67,14 +67,17 @@ fi
 
 DB_PASS_SQL="${DB_PASS//\'/\'\'}"
 
+echo "Installing dependencies"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq curl ca-certificates gnupg openssl postgresql nginx
 
+echo "Installing Node.js"
 need_node=1
 if command -v node >/dev/null 2>&1; then
   major="$(node -v | sed 's/^v//;s/\..*//')"
   [[ "$major" -ge 22 ]] && need_node=0
+  echo "Node.js $major found"
 fi
 if [[ "$need_node" -eq 1 ]]; then
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
@@ -100,10 +103,8 @@ fi
 
 cd "$API_ROOT"
 # Prod deps only. Build happens on your machine via deploy/build-and-push.sh.
-echo "Installing production dependencies"
-npm ci --omit=dev --no-audit --ignore-scripts --maxsockets 1 --silent
-echo "Installing drizzle-kit"
-npm install --no-save --no-audit --ignore-scripts --maxsockets 1 --silent drizzle-kit@^1.0.0-rc.4
+echo "Installing node dependencies"
+npm ci --no-audit --ignore-scripts --silent
 echo "Pushing schema"
 npm run db:push
 echo "Removing development dependencies"
