@@ -104,11 +104,9 @@ fi
 cd "$API_ROOT"
 # Prod deps only. Build happens on your machine via deploy/build-and-push.sh.
 echo "Installing node dependencies"
-npm ci --no-audit --ignore-scripts --silent
+npm ci --no-audit --omit=dev --ignore-scripts --silent
 echo "Pushing schema"
-npm run db:push
-echo "Removing development dependencies"
-npm prune --omit=dev --silent
+npm run db:migrate
 chown -R bookcamera:bookcamera "$API_ROOT"
 
 # set up the systemd services

@@ -23,6 +23,10 @@ if [[ -d "$API_ROOT/package.new.json" ]]; then
   cd "$API_ROOT"
 fi
 
+# migrate the database
+cd "$API_ROOT"
+npm run db:migrate
+
 echo "Stopping book-camera-api"
 if systemctl is-active --quiet book-camera-api 2>/dev/null; then
   systemctl stop book-camera-api

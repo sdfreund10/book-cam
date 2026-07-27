@@ -13,6 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:push": "drizzle-kit push",
+    "db:schema:generate": "drizzle-kit generate",
+    "db:migration:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
     "db:push:dev": "DATABASE_URL=postgresql://book_camera:book_camera@localhost:5432/book_camera_development drizzle-kit push",
     "db:push:test": "DATABASE_URL=postgresql://book_camera:book_camera@localhost:5432/book_camera_test drizzle-kit push"
   },
