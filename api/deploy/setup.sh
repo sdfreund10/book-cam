@@ -102,6 +102,7 @@ cd "$API_ROOT"
 # Prod deps only, then the few tools needed to build + push schema (keeps RAM down on small droplets).
 echo "Installing dependencies and building the API"
 npm ci --omit=dev --maxsockets 1 --silent
+echo "Installing build dependencies"
 npm install --no-save --maxsockets 1 --silent \
   typescript@^5.9.3 \
   drizzle-kit@^1.0.0-rc.4 \
