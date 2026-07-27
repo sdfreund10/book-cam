@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   Image,
   Pressable,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
 
 import { STATUS_COLORS, STATUS_LABELS } from '../constants/status';
 import type { Book } from '../types/book';
+import { openLibrarySearch } from '../utils/openLibrarySearch';
 
 type Props = {
   book: Book;
@@ -17,41 +19,53 @@ type Props = {
 
 export function BookListItem({ book, onPress }: Props) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}>
-      {book.coverImageUri ? (
-        <Image source={{ uri: book.coverImageUri }} style={styles.cover} />
-      ) : (
-        <View style={styles.coverPlaceholder}>
-          <Text style={styles.coverPlaceholderText}>📖</Text>
-        </View>
-      )}
-      <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>
-          {book.title}
-        </Text>
-        {book.author ? (
-          <Text style={styles.author} numberOfLines={1}>
-            {book.author}
+    <View style={styles.container}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [styles.main, pressed && styles.pressed]}>
+        {book.coverImageUri ? (
+          <Image source={{ uri: book.coverImageUri }} style={styles.cover} />
+        ) : (
+          <View style={styles.coverPlaceholder}>
+            <Text style={styles.coverPlaceholderText}>📖</Text>
+          </View>
+        )}
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={2}>
+            {book.title}
           </Text>
-        ) : null}
-        <View
-          style={[
-            styles.badge,
-            { backgroundColor: STATUS_COLORS[book.status] },
-          ]}>
-          <Text style={styles.badgeText}>{STATUS_LABELS[book.status]}</Text>
+          {book.author ? (
+            <Text style={styles.author} numberOfLines={1}>
+              {book.author}
+            </Text>
+          ) : null}
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: STATUS_COLORS[book.status] },
+            ]}>
+            <Text style={styles.badgeText}>{STATUS_LABELS[book.status]}</Text>
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+      <Pressable
+        style={styles.libraryLink}
+        onPress={() => {
+          openLibrarySearch(book.title).catch(() => {
+            Alert.alert(
+              'Could not open library',
+              'The library catalog could not be opened. Please try again.',
+            );
+          });
+        }}>
+        <Text style={styles.libraryLinkText}>🔎 Search library</Text>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
@@ -61,6 +75,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  main: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   pressed: {
     opacity: 0.85,
@@ -107,5 +125,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+  },
+  libraryLink: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    marginLeft: 64,
+  },
+  libraryLinkText: {
+    color: '#4A6FA5',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

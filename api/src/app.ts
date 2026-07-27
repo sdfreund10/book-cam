@@ -6,6 +6,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
+import { bugsnagErrorHandler, bugsnagRequestHandler } from './middleware/bugsnag.js'
 import { healthRouter } from './routes/health.js'
 import { booksRouter } from './routes/books.js'
 import { booksViewRouter } from './routes/booksView.js'
@@ -17,6 +18,9 @@ const moduleDir = path.dirname(fileURLToPath(import.meta.url))
 
 export function createApp (): express.Express {
   const app = express()
+
+  // Must be first so BugSnag can capture errors from downstream middleware.
+  app.use(bugsnagRequestHandler)
 
   app.set('view engine', 'ejs')
   app.set('views', path.join(moduleDir, 'views'))
@@ -49,6 +53,8 @@ export function createApp (): express.Express {
   app.get('/', (_req, res) => res.redirect('/books'))
 
   app.use(notFoundHandler)
+  // BugSnag's error handler must come before other error handlers; it calls next(err).
+  app.use(bugsnagErrorHandler)
   app.use(errorHandler)
 
   return app

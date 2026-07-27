@@ -5,7 +5,6 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -24,7 +23,7 @@ import { useBooks } from '../context/BooksContext';
 import type { RootStackParamList } from '../navigation/types';
 import { scanBookCover } from '../services/booksApi';
 import type { BookStatus } from '../types/book';
-import { buildLibrarySearchUrl } from '../utils/libraryLink';
+import { openLibrarySearch } from '../utils/openLibrarySearch';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookForm'>;
 
@@ -268,9 +267,14 @@ export function BookFormScreen({ navigation, route }: Props) {
         {title.trim() ? (
           <Pressable
             style={styles.libraryLink}
-            onPress={() =>
-              Linking.openURL(buildLibrarySearchUrl(title.trim()))
-            }>
+            onPress={() => {
+              openLibrarySearch(title.trim()).catch(() => {
+                Alert.alert(
+                  'Could not open library',
+                  'The library catalog could not be opened. Please try again.',
+                );
+              });
+            }}>
             <Text style={styles.libraryLinkText}>
               🔎 Search library for this title
             </Text>
