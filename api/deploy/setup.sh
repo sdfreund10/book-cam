@@ -101,10 +101,12 @@ fi
 cd "$API_ROOT"
 # Prod deps only. Build happens on your machine via deploy/build-and-push.sh.
 echo "Installing production dependencies"
-npm ci --omit=dev --maxsockets 1 --silent
+npm ci --omit=dev --no-audit --ignore-scripts --maxsockets 1 --silent
+echo "Installing drizzle-kit"
+npm install --no-save --no-audit --ignore-scripts --maxsockets 1 --silent drizzle-kit@^1.0.0-rc.4
 echo "Pushing schema"
-npm install --no-save --maxsockets 1 --silent drizzle-kit@^1.0.0-rc.4
-npm run --silent db:push
+npm run db:push
+echo "Removing development dependencies"
 npm prune --omit=dev --silent
 chown -R bookcamera:bookcamera "$API_ROOT"
 
