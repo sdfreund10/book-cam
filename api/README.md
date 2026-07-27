@@ -19,15 +19,40 @@ Initial setup on a fresh Ubuntu DigitalOcean droplet (Node 22, Postgres, nginx, 
 
 Create a github access token with read access to the book-cam repository.
 
-### 2. Clone, set up, and start
+### 2. Clone and set up the droplet
 
 ```sh
 git clone https://<TOKEN>@github.com/sdfreund10/book-cam.git && cd book-cam/api
 sudo ./deploy/setup.sh
+```
+
+`setup.sh` will prompt for port, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs packages, creates the database, installs production npm deps, pushes the schema, and installs the systemd unit and nginx reverse proxy. It does **not** build the TypeScript app or start the API.
+
+### 3. Build locally and upload `dist_new/`
+
+From your machine (in `api/`):
+
+```sh
+./deploy/build-and-push.sh root@YOUR_DROPLET_IP /root/book-cam/api
+```
+
+This only uploads a staged build. It does not restart the API.
+
+### 4. Activate the build on the droplet
+
+```sh
+sudo ./deploy/update.sh
+```
+
+Swaps `dist_new` → `dist` and restarts the API service (if it was already running).
+
+### 5. Start services (first boot)
+
+```sh
 sudo ./deploy/start.sh
 ```
 
-`setup.sh` will prompt for port, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs packages, creates the database, builds the app, and installs the systemd unit and nginx reverse proxy. It does **not** start the API — that is `start.sh`.
+Enables and starts Postgres, the API, and nginx. For later deploys, `update.sh` is enough after each upload.
 
 After start, check health:
 

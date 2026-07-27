@@ -99,20 +99,11 @@ fi
 
 
 cd "$API_ROOT"
-# Prod deps only, then the few tools needed to build + push schema (keeps RAM down on small droplets).
-echo "Installing dependencies and building the API"
+# Prod deps only. Build happens on your machine via deploy/build-and-push.sh.
+echo "Installing production dependencies"
 npm ci --omit=dev --maxsockets 1 --silent
-echo "Installing build dependencies"
-npm install --no-save --maxsockets 1 --silent \
-  typescript@^5.9.3 \
-  drizzle-kit@^1.0.0-rc.4 \
-  @types/node@^26.1.1 \
-  @types/express@^5.0.6 \
-  @types/cors@^2.8.19 \
-  @types/morgan@^1.9.10 \
-  @types/multer@^2.2.0 \
-  @types/pg@^8.20.0
-npm run --silent build
+echo "Pushing schema"
+npm install --no-save --maxsockets 1 --silent drizzle-kit@^1.0.0-rc.4
 npm run --silent db:push
 npm prune --omit=dev --silent
 chown -R bookcamera:bookcamera "$API_ROOT"
@@ -127,4 +118,6 @@ ln -sfn /etc/nginx/sites-available/book-camera /etc/nginx/sites-enabled/book-cam
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 
-echo "Setup complete. Start services with: sudo ./deploy/start.sh"
+echo "Setup complete."
+echo "From your machine: ./deploy/build-and-push.sh user@host $API_ROOT"
+echo "Then on the droplet: sudo ./deploy/update.sh && sudo ./deploy/start.sh"
