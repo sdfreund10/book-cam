@@ -97,9 +97,20 @@ if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_N
   sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
 fi
 
+
 cd "$API_ROOT"
-# install the dependencies and build the API
-npm ci --silent
+# Prod deps only, then the few tools needed to build + push schema (keeps RAM down on small droplets).
+echo "Installing dependencies and building the API"
+npm ci --omit=dev --maxsockets 1 --silent
+npm install --no-save --maxsockets 1 --silent \
+  typescript@^5.9.3 \
+  drizzle-kit@^1.0.0-rc.4 \
+  @types/node@^26.1.1 \
+  @types/express@^5.0.6 \
+  @types/cors@^2.8.19 \
+  @types/morgan@^1.9.10 \
+  @types/multer@^2.2.0 \
+  @types/pg@^8.20.0
 npm run --silent build
 npm run --silent db:push
 npm prune --omit=dev --silent
