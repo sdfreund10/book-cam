@@ -1,3 +1,4 @@
+// NOTE: This script is purposely written as an mdj module to avoid installing typescript in deployed environments.
 import 'dotenv/config'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

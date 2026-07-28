@@ -30,4 +30,9 @@ rsync -az --delete \
   "$API_ROOT/package-lock.json" \
   "${HOST}:${REMOTE_DIR}/package-lock.new.json"
 
+rsync -az --delete \
+  -e ssh \
+  "$API_ROOT/migrations" \
+  "${HOST}:${REMOTE_DIR}/migrations.new"
+
 echo "Upload complete. On the droplet run: sudo ./deploy/update.sh"

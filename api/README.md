@@ -26,7 +26,9 @@ git clone https://<TOKEN>@github.com/sdfreund10/book-cam.git && cd book-cam/api
 sudo ./deploy/setup.sh
 ```
 
-`setup.sh` will prompt for port, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs packages, creates the database, installs production npm deps, pushes the schema, and installs the systemd unit and nginx reverse proxy. It does **not** build the TypeScript app or start the API.
+`setup.sh` will prompt for port, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs packages, creates the database, installs production npm deps, runs SQL migrations, and installs the systemd unit and nginx reverse proxy. It does **not** build the TypeScript app or start the API.
+
+Schema changes for production must be committed as generated migrations (`npm run db:migration:generate`). Local `db:push:dev` does not create migration files.
 
 ### 3. Build locally and upload `dist_new/`
 
@@ -44,7 +46,7 @@ This only uploads a staged build. It does not restart the API.
 sudo ./deploy/update.sh
 ```
 
-Swaps `dist_new` → `dist` and restarts the API service (if it was already running).
+Activates uploaded migrations, runs `db:migrate`, swaps `dist_new` → `dist` / deps, and restarts the API service (if it was already running).
 
 ### 5. Start services (first boot)
 
