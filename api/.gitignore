@@ -13,6 +13,10 @@ dist/
 # Test / coverage
 coverage/
 
+# Deploy config — rendered from *.template files by setup.sh; never commit the live versions
+deploy/systemd/book-camera-api.service
+deploy/nginx/book-camera.conf
+
 # Logs & OS
 *.log
 .DS_Store

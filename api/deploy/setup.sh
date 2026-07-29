@@ -111,10 +111,10 @@ chown -R bookcamera:bookcamera "$API_ROOT"
 
 # set up the systemd services
 sed "s|__API_ROOT__|${API_ROOT}|g" \
-  "$DEPLOY_DIR/systemd/book-camera-api.service" > /etc/systemd/system/book-camera-api.service
+  "$DEPLOY_DIR/systemd/book-camera-api.service.template" > /etc/systemd/system/book-camera-api.service
 systemctl daemon-reload
 
-sed "s|__PORT__|${PORT}|g" "$DEPLOY_DIR/nginx/book-camera.conf" > /etc/nginx/sites-available/book-camera
+sed "s|__PORT__|${PORT}|g" "$DEPLOY_DIR/nginx/book-camera.template.conf" > /etc/nginx/sites-available/book-camera
 ln -sfn /etc/nginx/sites-available/book-camera /etc/nginx/sites-enabled/book-camera
 rm -f /etc/nginx/sites-enabled/default
 nginx -t

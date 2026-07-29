@@ -66,5 +66,5 @@ rm -rf "$STAGING_DIR"
 
 chown -R bookcamera:bookcamera "$API_ROOT/dist"
 
-systemctl restart book-camera-api
+sh "$API_ROOT/deploy/start.sh"
 echo "Updated. Health check: curl -s http://127.0.0.1/health"
