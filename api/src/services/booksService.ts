@@ -3,7 +3,7 @@ import type { Book } from '../types/book.js'
 import { lookupBookMetadata } from './bookLookupService.js'
 
 export async function addCoverImage (book: Book): Promise<Book> {
-  if (book.coverImageUri) {
+  if (book.coverImageUri != null && book.coverImageUri !== '') {
     return book
   }
 
