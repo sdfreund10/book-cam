@@ -17,6 +17,9 @@ coverage/
 deploy/systemd/book-camera-api.service
 deploy/nginx/book-camera.conf
 
+# Local CI → droplet private keys (see DEPLOY.md)
+book-camera-deploy-key*
+
 # Logs & OS
 *.log
 .DS_Store

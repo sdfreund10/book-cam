@@ -5,7 +5,7 @@ Wants=postgresql.service
 
 [Service]
 Type=simple
-User=bookcamera
+User=book-camera-deploy
 WorkingDirectory=__API_ROOT__
 EnvironmentFile=__API_ROOT__/.env
 ExecStart=/usr/bin/node dist/index.js

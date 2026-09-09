@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "DEPRECATED: Use GitHub Actions + deploy/activate.sh (see api/DEPLOY.md). Kept for reference only." >&2
+exit 0
+
 # Build the API locally and upload to dist_new/ on the droplet (no restart).
-# Activate with sudo ./deploy/start.sh on the droplet.
+# Activate with sudo ./deploy/update.sh on the droplet.
 # Usage: ./deploy/build-and-push.sh user@host [remote_api_dir]
-# Example: ./deploy/build-and-push.sh root@X.X.X.X /root/book-cam/api
+# Example: ./deploy/build-and-push.sh user@YOUR_DROPLET_IP /opt/book-camera/api
 
 API_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HOST="${1:?Usage: $0 user@host [remote_api_dir]}"
-REMOTE_DIR="${2:-/root/book-cam/api}"
+REMOTE_DIR="${2:-/opt/book-camera/api}"
 
 cd "$API_ROOT"
 echo "Building API..."

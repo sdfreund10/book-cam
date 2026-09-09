@@ -11,52 +11,47 @@ npm run db:push:dev
 npm run dev
 ```
 
-## Deployment (OLD)
+## Deployment
 
-Initial setup on a fresh Ubuntu DigitalOcean droplet (Node 22, Postgres, nginx, systemd).
+Initial setup on a fresh Ubuntu DigitalOcean droplet (Node 22, Postgres, nginx, systemd). TypeScript is built in GitHub Actions; the droplet never runs `tsc`.
 
-### 1. Allow the droplet to clone the repo
+### 1. Clone the API onto the droplet
 
-Create a github access token with read access to the book-cam repository.
-
-### 2. Clone and set up the droplet
+As an admin user:
 
 ```sh
-git clone https://<TOKEN>@github.com/sdfreund10/book-cam.git && cd book-cam/api
+git clone https://github.com/OWNER/REPO.git && cd REPO/api
+# or copy the api/ tree to /opt/book-camera/api
 sudo ./deploy/setup.sh
 ```
 
-`setup.sh` will prompt for port, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs packages, creates the database, installs production npm deps, runs SQL migrations, and installs the systemd unit and nginx reverse proxy. It does **not** build the TypeScript app or start the API.
+`setup.sh` prompts for port, public domain, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs packages, creates the database and `book-camera-deploy` user, installs production npm deps, runs SQL migrations, and installs the systemd unit and nginx reverse proxy. It does **not** build the TypeScript app.
 
 Schema changes for production must be committed as generated migrations (`npm run db:migration:generate`). Local `db:push:dev` does not create migration files.
 
-### 3. Build locally and upload `dist_new/`
+### 2. Wire up automated deploys
 
-From your machine (in `api/`):
+Follow [DEPLOY.md](DEPLOY.md) once: CI → droplet SSH key, ownership, limited sudo, and GitHub Actions secrets (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`).
 
-```sh
-./deploy/build-and-push.sh root@YOUR_DROPLET_IP /opt/book-cam/api
-```
+After that, merges to `main` that change `api/**` build in CI, rsync the release, and run `deploy/activate.sh` on the droplet.
 
-This only uploads a staged build. It does not restart the API.
+### 3. Start services (first boot)
 
-### 4. Activate the build on the droplet
-
-```sh
-sudo ./deploy/update.sh
-```
-
-Activates uploaded migrations, runs `db:migrate`, swaps `dist_new` → `dist` / deps, and restarts the API service (if it was already running).
-
-### 5. Start services (first boot)
+After the first successful CI deploy (or after placing a `dist/` manually):
 
 ```sh
 sudo ./deploy/start.sh
 ```
 
-Enables and starts Postgres, the API, and nginx. For later deploys, `update.sh` is enough after each upload.
+Enables and starts Postgres, the API, and nginx. Later deploys only need `activate.sh` (invoked by Actions).
 
-After start, check health:
+Optional TLS:
+
+```sh
+sudo ./deploy/ssl-setup.sh api.example.com
+```
+
+Health check:
 
 ```sh
 curl -s http://127.0.0.1/health

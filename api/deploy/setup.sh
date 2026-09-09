@@ -6,6 +6,7 @@ set -euo pipefail
 API_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEPLOY_DIR="$API_ROOT/deploy"
 ENV_FILE="$API_ROOT/.env"
+DEPLOY_USER=book-camera-deploy
 
 ask() {
   local prompt="$1" default="${2:-}" value
@@ -35,6 +36,7 @@ ask_secret() {
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Configuring production environment"
   PORT="$(ask 'App port' 3000)"
+  DOMAIN="$(ask 'Public domain (nginx server_name)' api.example.com)"
   DB_USER="$(ask 'Postgres user' book_camera)"
   DB_NAME="$(ask 'Postgres database' book_camera_production)"
   DB_PASS="$(ask_secret 'Postgres password' "$(openssl rand -hex 16)")"
@@ -52,6 +54,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
 else
   PORT="$(grep -E '^PORT=' "$ENV_FILE" | cut -d= -f2- || true)"
   PORT="${PORT:-3000}"
+  DOMAIN="$(ask 'Public domain (nginx server_name)' api.example.com)"
   DATABASE_URL="$(grep -E '^DATABASE_URL=' "$ENV_FILE" | cut -d= -f2-)"
   without_scheme="${DATABASE_URL#postgresql://}"
   without_scheme="${without_scheme#postgres://}"
@@ -84,8 +87,10 @@ if [[ "$need_node" -eq 1 ]]; then
   apt-get install -y -qq nodejs
 fi
 
-# Create a system user for the API if it doesn't exist
-id bookcamera >/dev/null 2>&1 || useradd --system --home "$API_ROOT" --shell /usr/sbin/nologin bookcamera
+# Deploy + runtime user (SSH deploy and systemd share this account)
+if ! id "$DEPLOY_USER" >/dev/null 2>&1; then
+  adduser --disabled-password --gecos "" "$DEPLOY_USER"
+fi
 
 systemctl enable --now postgresql
 
@@ -100,25 +105,30 @@ if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_N
   sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
 fi
 
-
 cd "$API_ROOT"
-# Prod deps only. Build happens on your machine via deploy/build-and-push.sh.
+# Prod deps only. TypeScript is built in GitHub Actions (see api/DEPLOY.md).
 echo "Installing node dependencies"
 npm ci --no-audit --omit=dev --ignore-scripts --silent
 echo "Running database migrations"
 npm run db:migrate
-chown -R bookcamera:bookcamera "$API_ROOT"
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "$API_ROOT"
+chmod 600 "$ENV_FILE"
 
 # set up the systemd services
 sed "s|__API_ROOT__|${API_ROOT}|g" \
   "$DEPLOY_DIR/systemd/book-camera-api.service.template" > /etc/systemd/system/book-camera-api.service
 systemctl daemon-reload
 
-sed "s|__PORT__|${PORT}|g" "$DEPLOY_DIR/nginx/book-camera.template.conf" > /etc/nginx/sites-available/book-camera
+sed \
+  -e "s|__PORT__|${PORT}|g" \
+  -e "s|__DOMAIN__|${DOMAIN}|g" \
+  "$DEPLOY_DIR/nginx/book-camera.template.conf" > /etc/nginx/sites-available/book-camera
 ln -sfn /etc/nginx/sites-available/book-camera /etc/nginx/sites-enabled/book-camera
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 
 echo "Setup complete."
-echo "From your machine: ./deploy/build-and-push.sh user@host $API_ROOT"
-echo "Then on the droplet: sudo ./deploy/update.sh && sudo ./deploy/start.sh"
+echo "Next:"
+echo "  1. Configure CI deploy user/keys (see api/DEPLOY.md)"
+echo "  2. Sync a built release via GitHub Actions, or place dist/ then: sudo ./deploy/start.sh"
+echo "  3. Optional TLS: sudo ./deploy/ssl-setup.sh ${DOMAIN}"

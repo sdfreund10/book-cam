@@ -1,0 +1,127 @@
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['api/**', '.github/workflows/api-deploy.yml']
+  pull_request:
+    branches: [main]
+    paths: ['api/**', '.github/workflows/api-deploy.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: book_camera
+          POSTGRES_PASSWORD: book_camera
+          POSTGRES_DB: book_camera_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U book_camera -d book_camera_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare test database
+        run: npm run db:push:test
+        env:
+          DATABASE_URL: postgresql://book_camera:book_camera@localhost:5432/book_camera_test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Pack release artifact
+        run: |
+          mkdir -p /tmp/api-release
+          cp -R dist /tmp/api-release/dist
+          cp package.json package-lock.json /tmp/api-release/
+          cp -R migrations /tmp/api-release/migrations
+          mkdir -p /tmp/api-release/deploy
+          cp deploy/activate.sh /tmp/api-release/deploy/activate.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-release
+          path: /tmp/api-release
+          retention-days: 7
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: api-release
+          path: api-release
+
+      - name: Install rsync
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq rsync
+
+      - name: Sync release to droplet
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/.ssh"
+          chmod 700 "${HOME}/.ssh"
+          install -m 600 /dev/null "${HOME}/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "${HOME}/.ssh/deploy_key"
+          ssh-keyscan -H "$DEPLOY_HOST" >> "${HOME}/.ssh/known_hosts"
+          RSYNC_SSH="ssh -i ${HOME}/.ssh/deploy_key -o IdentitiesOnly=yes"
+          rsync -az --delete -e "$RSYNC_SSH" \
+            api-release/dist/ \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/dist/"
+          rsync -az -e "$RSYNC_SSH" \
+            api-release/package.json \
+            api-release/package-lock.json \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+          rsync -az --delete -e "$RSYNC_SSH" \
+            api-release/migrations/ \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/migrations/"
+          rsync -az -e "$RSYNC_SSH" \
+            api-release/deploy/activate.sh \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/deploy/activate.sh"
+
+      - name: Activate on droplet
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            chmod +x deploy/activate.sh
+            ./deploy/activate.sh

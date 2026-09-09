@@ -6,7 +6,7 @@ set -euo pipefail
 API_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 [[ -d "$API_ROOT/dist" ]] || {
-  echo "Missing $API_ROOT/dist — run ./deploy/build-and-push.sh then sudo ./deploy/update.sh first" >&2
+  echo "Missing $API_ROOT/dist — deploy a CI build first (see api/DEPLOY.md)" >&2
   exit 1
 }
 

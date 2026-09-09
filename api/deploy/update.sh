@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "DEPRECATED: Use GitHub Actions + deploy/activate.sh (see api/DEPLOY.md). Kept for reference only." >&2
+
 [[ $EUID -eq 0 ]] || { echo "Run as root (sudo ./deploy/update.sh)" >&2; exit 1; }
 
 API_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
