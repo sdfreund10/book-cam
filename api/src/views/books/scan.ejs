@@ -2,7 +2,7 @@
 <%- include('../partials/header', { title: 'Scan a Cover' }) %>
 
 <h1>Scan a Cover</h1>
-<p class="hint">Take or upload a photo of a book's cover and we'll try to pre-fill the title, author, and cover art for you.</p>
+<p class="hint">Take a photo or choose one from your library. We'll try to pre-fill the title, author, and cover art for you.</p>
 
 <% if (warnings.length > 0) { %>
   <div class="notice-list">
@@ -12,10 +12,17 @@
   </div>
 <% } %>
 
-<form class="book-form" method="POST" action="/books/scan" enctype="multipart/form-data">
+<form class="book-form" id="scan-form" method="POST" action="/books/scan" enctype="multipart/form-data">
   <div class="field">
-    <label for="cover">Cover photo</label>
-    <input type="file" id="cover" name="cover" accept="image/*" capture="environment" required />
+    <span class="field-label">Cover photo</span>
+    <div class="photo-actions">
+      <label class="button" for="cover-camera">Take photo</label>
+      <label class="button" for="cover-library">Choose from library</label>
+    </div>
+    <!-- capture opens the rear camera; omit it on the library input so the photo picker opens -->
+    <input type="file" id="cover-camera" name="cover" accept="image/*" capture="environment" />
+    <input type="file" id="cover-library" accept="image/*" />
+    <p class="hint" id="cover-filename">No photo selected yet.</p>
   </div>
 
   <div class="form-actions">
@@ -23,5 +30,40 @@
     <a class="button" href="/books/new">Enter details manually instead</a>
   </div>
 </form>
+
+<script>
+  (function () {
+    var form = document.getElementById('scan-form');
+    var cameraInput = document.getElementById('cover-camera');
+    var libraryInput = document.getElementById('cover-library');
+    var filename = document.getElementById('cover-filename');
+
+    function selectSource(active, inactive) {
+      active.setAttribute('name', 'cover');
+      inactive.removeAttribute('name');
+      if (active.files && active.files.length > 0) {
+        filename.textContent = active.files[0].name || 'Photo selected';
+      }
+    }
+
+    cameraInput.addEventListener('change', function () {
+      selectSource(cameraInput, libraryInput);
+    });
+
+    libraryInput.addEventListener('change', function () {
+      selectSource(libraryInput, cameraInput);
+    });
+
+    form.addEventListener('submit', function (event) {
+      var hasCamera = cameraInput.files && cameraInput.files.length > 0;
+      var hasLibrary = libraryInput.files && libraryInput.files.length > 0;
+      if (!hasCamera && !hasLibrary) {
+        event.preventDefault();
+        filename.textContent = 'Please take a photo or choose one from your library.';
+        filename.classList.add('field-error');
+      }
+    });
+  })();
+</script>
 
 <%- include('../partials/footer') %>

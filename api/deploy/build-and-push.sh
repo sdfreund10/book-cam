@@ -4,7 +4,7 @@ set -euo pipefail
 # Build the API locally and upload to dist_new/ on the droplet (no restart).
 # Activate with sudo ./deploy/start.sh on the droplet.
 # Usage: ./deploy/build-and-push.sh user@host [remote_api_dir]
-# Example: ./deploy/build-and-push.sh root@64.227.92.84 /root/book-cam/api
+# Example: ./deploy/build-and-push.sh root@X.X.X.X /root/book-cam/api
 
 API_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HOST="${1:?Usage: $0 user@host [remote_api_dir]}"

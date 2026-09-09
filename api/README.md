@@ -11,7 +11,7 @@ npm run db:push:dev
 npm run dev
 ```
 
-## Deployment
+## Deployment (OLD)
 
 Initial setup on a fresh Ubuntu DigitalOcean droplet (Node 22, Postgres, nginx, systemd).
 
@@ -35,7 +35,7 @@ Schema changes for production must be committed as generated migrations (`npm ru
 From your machine (in `api/`):
 
 ```sh
-./deploy/build-and-push.sh root@YOUR_DROPLET_IP /root/book-cam/api
+./deploy/build-and-push.sh root@YOUR_DROPLET_IP /opt/book-cam/api
 ```
 
 This only uploads a staged build. It does not restart the API.

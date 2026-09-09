@@ -6,7 +6,7 @@ const DEVELOPMENT_API_PORT = 4000;
  * Set this to the public HTTPS origin used by release builds, without a
  * trailing slash (for example, "https://books.example.com").
  */
-const PRODUCTION_API_BASE_URL: string = '';
+const PRODUCTION_API_BASE_URL: string = 'https://books.sfreund.tools';
 
 type SourceCodeModule = {
   scriptURL?: string;
