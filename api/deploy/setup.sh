@@ -106,11 +106,9 @@ if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_N
 fi
 
 cd "$API_ROOT"
-# Prod deps only. TypeScript is built in GitHub Actions (see api/DEPLOY.md).
-echo "Installing node dependencies"
-npm ci --no-audit --omit=dev --ignore-scripts --silent
-echo "Running database migrations"
-npm run db:migrate
+# Prod deps are installed in GitHub Actions and rsynced (see api/DEPLOY.md).
+# Do not run npm ci here — small droplets OOM (exit 137).
+echo "Skipping npm install (CI ships node_modules on deploy)"
 chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "$API_ROOT"
 chmod 600 "$ENV_FILE"
 
@@ -130,5 +128,6 @@ nginx -t
 echo "Setup complete."
 echo "Next:"
 echo "  1. Configure CI deploy user/keys (see api/DEPLOY.md)"
-echo "  2. Sync a built release via GitHub Actions, or place dist/ then: sudo ./deploy/start.sh"
-echo "  3. Optional TLS: sudo ./deploy/ssl-setup.sh ${DOMAIN}"
+echo "  2. Sync a built release via GitHub Actions (dist + node_modules + migrations)"
+echo "  3. Then: sudo ./deploy/start.sh"
+echo "  4. Optional TLS: sudo ./deploy/ssl-setup.sh ${DOMAIN}"

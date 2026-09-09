@@ -25,7 +25,7 @@ git clone https://github.com/OWNER/REPO.git && cd REPO/api
 sudo ./deploy/setup.sh
 ```
 
-`setup.sh` prompts for port, public domain, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs packages, creates the database and `book-camera-deploy` user, installs production npm deps, runs SQL migrations, and installs the systemd unit and nginx reverse proxy. It does **not** build the TypeScript app.
+`setup.sh` prompts for port, public domain, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs system packages, creates the database and `book-camera-deploy` user, and installs the systemd unit and nginx reverse proxy. It does **not** build TypeScript or run `npm ci` (CI ships `dist/` and production `node_modules/` to avoid OOM on small droplets).
 
 Schema changes for production must be committed as generated migrations (`npm run db:migration:generate`). Local `db:push:dev` does not create migration files.
 
