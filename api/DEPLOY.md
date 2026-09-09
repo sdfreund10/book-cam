@@ -3,7 +3,7 @@
 One-time steps so GitHub Actions can build the API off-droplet, rsync the release over SSH, and restart the service.
 Manual first install (nginx, Node, Postgres, `.env`) is covered in [README.md](README.md#deployment).
 
-TypeScript compilation and production `npm ci` run in CI. The droplet only runs migrations and `systemctl restart`.
+TypeScript compilation and production `npm ci` run in CI. Dependencies are shipped as `node_modules.tar.gz`. The droplet only extracts them, runs migrations, and `systemctl restart`.
 
 ## 1. Deploy user on the droplet
 
@@ -60,6 +60,6 @@ Routine deploys do **not** use `git pull` on the droplet, so no GitHub deploy ke
 After [`.github/workflows/api-deploy.yml`](../.github/workflows/api-deploy.yml) is on `main`:
 
 - Pushes and PRs that touch `api/**` run lint, typecheck, tests (with Postgres), and `npm run build`.
-- On push to `main` (or manual **workflow_dispatch**), if those steps pass, Actions rsyncs `dist/`, production `node_modules/`, lockfiles, and `migrations/` to `DEPLOY_PATH`, then runs `./deploy/activate.sh` over SSH (migrate, `systemctl restart book-camera-api`).
+- On push to `main` (or manual **workflow_dispatch**), if those steps pass, Actions rsyncs `dist/`, `node_modules.tar.gz`, lockfiles, `scripts/migrate.mjs`, and `migrations/` to `DEPLOY_PATH`, then runs `./deploy/activate.sh` over SSH (extract deps, migrate, `systemctl restart book-camera-api`).
 
 Deprecated laptop scripts `deploy/build-and-push.sh` and `deploy/update.sh` remain in the tree for reference only.
