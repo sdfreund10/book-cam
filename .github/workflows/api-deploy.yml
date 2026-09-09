@@ -64,7 +64,8 @@ jobs:
           cp -R dist /tmp/api-release/dist
           cp package.json package-lock.json /tmp/api-release/
           cp -R migrations /tmp/api-release/migrations
-          mkdir -p /tmp/api-release/deploy
+          mkdir -p /tmp/api-release/scripts /tmp/api-release/deploy
+          cp scripts/migrate.mjs /tmp/api-release/scripts/migrate.mjs
           cp deploy/activate.sh /tmp/api-release/deploy/activate.sh
 
       - uses: actions/upload-artifact@v4
@@ -82,6 +83,22 @@ jobs:
         with:
           name: api-release
           path: api-release
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: api-release/package-lock.json
+
+      - name: Install production dependencies
+        working-directory: api-release
+        run: |
+          npm ci --omit=dev --no-audit --ignore-scripts
+          # Tarball is more reliable than rsync'ing the tree (partial/corrupt
+          # node_modules after OOM kills, symlink edge cases, huge file counts).
+          tar -czf node_modules.tar.gz node_modules
+          rm -rf node_modules
+          test -f node_modules.tar.gz
 
       - name: Install rsync
         run: sudo apt-get update -qq && sudo apt-get install -y -qq rsync
@@ -106,10 +123,14 @@ jobs:
           rsync -az -e "$RSYNC_SSH" \
             api-release/package.json \
             api-release/package-lock.json \
+            api-release/node_modules.tar.gz \
             "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
           rsync -az --delete -e "$RSYNC_SSH" \
             api-release/migrations/ \
             "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/migrations/"
+          rsync -az --delete -e "$RSYNC_SSH" \
+            api-release/scripts/ \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/scripts/"
           rsync -az -e "$RSYNC_SSH" \
             api-release/deploy/activate.sh \
             "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/deploy/activate.sh"
