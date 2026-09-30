@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config'
 
 const sharedEnv = {
   NODE_ENV: 'test',
+  APP_PASSWORD: 'test-password',
   DATABASE_URL: 'postgresql://book_camera:book_camera@localhost:5432/book_camera_test'
 }
 
@@ -29,6 +30,7 @@ export default defineConfig({
           environment: 'node',
           include: [
             'test/health.test.ts',
+            'test/auth.test.ts',
             'test/books.test.ts',
             'test/books.scan.test.ts'
           ],

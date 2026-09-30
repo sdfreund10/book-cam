@@ -341,3 +341,11 @@ h1 {
 .button.danger:hover {
   background: #fbeceb;
 }
+
+.login-container {
+  max-width: 420px;
+}
+
+.login-form h1 {
+  margin-bottom: 0.25rem;
+}

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import request from 'supertest'
 
 vi.mock('../src/services/bookLookupService.js', () => ({
   lookupBookMetadata: vi.fn()
@@ -7,9 +6,11 @@ vi.mock('../src/services/bookLookupService.js', () => ({
 
 const { lookupBookMetadata } = await import('../src/services/bookLookupService.js')
 const { createApp } = await import('../src/app.js')
+const { authed } = await import('./helpers/authed.js')
 
 const mockedLookup = vi.mocked(lookupBookMetadata)
 const app = createApp()
+const request = authed(app)
 
 const sampleBook = {
   title: 'The Left Hand of Darkness',
@@ -24,16 +25,16 @@ describe('GET /api/books', () => {
   })
 
   it('returns an empty list when there are no books', async () => {
-    const res = await request(app).get('/api/books')
+    const res = await request.get('/api/books')
 
     expect(res.status).toBe(200)
     expect(res.body).toEqual({ data: [] })
   })
 
   it('returns created books', async () => {
-    await request(app).post('/api/books').send(sampleBook)
+    await request.post('/api/books').send(sampleBook)
 
-    const res = await request(app).get('/api/books')
+    const res = await request.get('/api/books')
 
     expect(res.status).toBe(200)
     expect(res.body.data).toHaveLength(1)
@@ -48,7 +49,7 @@ describe('POST /api/books', () => {
   })
 
   it('creates a book', async () => {
-    const res = await request(app).post('/api/books').send(sampleBook)
+    const res = await request.post('/api/books').send(sampleBook)
 
     expect(res.status).toBe(201)
     expect(res.body.data).toMatchObject(sampleBook)
@@ -56,7 +57,7 @@ describe('POST /api/books', () => {
   })
 
   it('rejects invalid book data', async () => {
-    const res = await request(app).post('/api/books').send({ title: 'Missing author' })
+    const res = await request.post('/api/books').send({ title: 'Missing author' })
 
     expect(res.status).toBe(400)
     expect(res.body.error).toBe('Invalid book data')
@@ -73,7 +74,7 @@ describe('POST /api/books', () => {
       coverImageUri: 'https://covers.openlibrary.org/b/id/123-L.jpg'
     })
 
-    const res = await request(app).post('/api/books').send(sampleBook)
+    const res = await request.post('/api/books').send(sampleBook)
 
     expect(res.status).toBe(201)
     expect(res.body.data.coverImageUri).toBe('https://covers.openlibrary.org/b/id/123-L.jpg')
@@ -89,7 +90,7 @@ describe('POST /api/books', () => {
       coverImageUri: 'https://example.com/my-cover.jpg'
     }
 
-    const res = await request(app).post('/api/books').send(withCover)
+    const res = await request.post('/api/books').send(withCover)
 
     expect(res.status).toBe(201)
     expect(res.body.data.coverImageUri).toBe('https://example.com/my-cover.jpg')
@@ -99,7 +100,7 @@ describe('POST /api/books', () => {
   it('creates a book without a cover when lookup returns null', async () => {
     mockedLookup.mockResolvedValue(null)
 
-    const res = await request(app).post('/api/books').send(sampleBook)
+    const res = await request.post('/api/books').send(sampleBook)
 
     expect(res.status).toBe(201)
     expect(res.body.data.coverImageUri).toBeNull()
@@ -107,7 +108,7 @@ describe('POST /api/books', () => {
   })
 
   it('persists optional notes and coverImageUri', async () => {
-    const res = await request(app).post('/api/books').send({
+    const res = await request.post('/api/books').send({
       ...sampleBook,
       notes: 'Gift from Alex',
       coverImageUri: 'https://example.com/cover.jpg'
@@ -129,24 +130,24 @@ describe('GET /api/books/:id', () => {
   })
 
   it('returns a book by id', async () => {
-    const created = await request(app).post('/api/books').send(sampleBook)
+    const created = await request.post('/api/books').send(sampleBook)
     const id = created.body.data.id as number
 
-    const res = await request(app).get(`/api/books/${id}`)
+    const res = await request.get(`/api/books/${id}`)
 
     expect(res.status).toBe(200)
     expect(res.body.data).toMatchObject({ id, ...sampleBook })
   })
 
   it('returns 404 for a missing book', async () => {
-    const res = await request(app).get('/api/books/999999')
+    const res = await request.get('/api/books/999999')
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')
   })
 
   it.each(['abc', '0', '-1'])('returns 404 for invalid id %s', async (id) => {
-    const res = await request(app).get(`/api/books/${id}`)
+    const res = await request.get(`/api/books/${id}`)
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')
@@ -160,7 +161,7 @@ describe('PUT /api/books/:id', () => {
   })
 
   it('replaces a book', async () => {
-    const created = await request(app).post('/api/books').send(sampleBook)
+    const created = await request.post('/api/books').send(sampleBook)
     const id = created.body.data.id as number
 
     const updated = {
@@ -169,24 +170,24 @@ describe('PUT /api/books/:id', () => {
       status: 'finished'
     }
 
-    const res = await request(app).put(`/api/books/${id}`).send(updated)
+    const res = await request.put(`/api/books/${id}`).send(updated)
 
     expect(res.status).toBe(200)
     expect(res.body.data).toMatchObject({ id, ...updated })
   })
 
   it('returns 404 when replacing a missing book', async () => {
-    const res = await request(app).put('/api/books/999999').send(sampleBook)
+    const res = await request.put('/api/books/999999').send(sampleBook)
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')
   })
 
   it('returns 400 for invalid replacement data', async () => {
-    const created = await request(app).post('/api/books').send(sampleBook)
+    const created = await request.post('/api/books').send(sampleBook)
     const id = created.body.data.id as number
 
-    const res = await request(app).put(`/api/books/${id}`).send({ title: 'Only title' })
+    const res = await request.put(`/api/books/${id}`).send({ title: 'Only title' })
 
     expect(res.status).toBe(400)
     expect(res.body.error).toBe('Invalid book data')
@@ -197,7 +198,7 @@ describe('PUT /api/books/:id', () => {
   })
 
   it.each(['abc', '0', '-1'])('returns 404 for invalid id %s', async (id) => {
-    const res = await request(app).put(`/api/books/${id}`).send(sampleBook)
+    const res = await request.put(`/api/books/${id}`).send(sampleBook)
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')
@@ -211,10 +212,10 @@ describe('PATCH /api/books/:id', () => {
   })
 
   it('partially updates a book', async () => {
-    const created = await request(app).post('/api/books').send(sampleBook)
+    const created = await request.post('/api/books').send(sampleBook)
     const id = created.body.data.id as number
 
-    const res = await request(app).patch(`/api/books/${id}`).send({ status: 'started' })
+    const res = await request.patch(`/api/books/${id}`).send({ status: 'started' })
 
     expect(res.status).toBe(200)
     expect(res.body.data).toMatchObject({
@@ -226,17 +227,17 @@ describe('PATCH /api/books/:id', () => {
   })
 
   it('returns 404 when patching a missing book', async () => {
-    const res = await request(app).patch('/api/books/999999').send({ status: 'started' })
+    const res = await request.patch('/api/books/999999').send({ status: 'started' })
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')
   })
 
   it('returns 400 for an invalid status', async () => {
-    const created = await request(app).post('/api/books').send(sampleBook)
+    const created = await request.post('/api/books').send(sampleBook)
     const id = created.body.data.id as number
 
-    const res = await request(app).patch(`/api/books/${id}`).send({ status: 'reading' })
+    const res = await request.patch(`/api/books/${id}`).send({ status: 'reading' })
 
     expect(res.status).toBe(400)
     expect(res.body.error).toBe('Invalid book data')
@@ -244,7 +245,7 @@ describe('PATCH /api/books/:id', () => {
   })
 
   it.each(['abc', '0', '-1'])('returns 404 for invalid id %s', async (id) => {
-    const res = await request(app).patch(`/api/books/${id}`).send({ status: 'started' })
+    const res = await request.patch(`/api/books/${id}`).send({ status: 'started' })
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')
@@ -258,26 +259,26 @@ describe('DELETE /api/books/:id', () => {
   })
 
   it('deletes a book', async () => {
-    const created = await request(app).post('/api/books').send(sampleBook)
+    const created = await request.post('/api/books').send(sampleBook)
     const id = created.body.data.id as number
 
-    const res = await request(app).delete(`/api/books/${id}`)
+    const res = await request.delete(`/api/books/${id}`)
 
     expect(res.status).toBe(204)
 
-    const missing = await request(app).get(`/api/books/${id}`)
+    const missing = await request.get(`/api/books/${id}`)
     expect(missing.status).toBe(404)
   })
 
   it('returns 404 when deleting a missing book', async () => {
-    const res = await request(app).delete('/api/books/999999')
+    const res = await request.delete('/api/books/999999')
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')
   })
 
   it.each(['abc', '0', '-1'])('returns 404 for invalid id %s', async (id) => {
-    const res = await request(app).delete(`/api/books/${id}`)
+    const res = await request.delete(`/api/books/${id}`)
 
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('Book not found')

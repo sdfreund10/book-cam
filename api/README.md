@@ -4,12 +4,26 @@ Express + Postgres API for the Book Camera app.
 
 ## Local development
 
+Postgres must already be running locally. Create the role and database once:
+
 ```sh
-cp .env.example .env   # set DATABASE_URL and any API keys
-npm install
-npm run db:push:dev
-npm run dev
+createuser -P book_camera          # password: book_camera
+createdb -O book_camera book_camera_development
+createdb -O book_camera book_camera_test   # only needed for `npm test`
 ```
+
+Then from `api/`:
+
+```sh
+cp .env.example .env   # set DATABASE_URL, APP_PASSWORD, and any API keys
+npm install
+npm run db:push:dev    # create the books/users tables
+npm run dev            # http://localhost:4000  (PORT in .env)
+```
+
+`/` redirects to `/books`, which asks for `APP_PASSWORD` once, then lists books. If that page 500s with an internal server error, the development database or tables are missing — run the `createdb` / `db:push:dev` steps above.
+
+Set `APP_PASSWORD` to a shared secret. The web UI asks for it once, then keeps a session cookie on that browser until the password changes.
 
 ## Deployment
 

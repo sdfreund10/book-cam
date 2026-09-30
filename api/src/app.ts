@@ -7,7 +7,9 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 
 import { bugsnagErrorHandler, bugsnagRequestHandler } from './middleware/bugsnag.js'
+import { requireAuth } from './middleware/requireAuth.js'
 import { healthRouter } from './routes/health.js'
+import { apiLoginRouter, loginRouter } from './routes/login.js'
 import { booksRouter } from './routes/books.js'
 import { booksViewRouter } from './routes/booksView.js'
 import { notFoundHandler } from './middleware/notFound.js'
@@ -28,14 +30,19 @@ export function createApp (): express.Express {
   // Available to every view as `buildLibrarySearchUrl(title)`.
   app.locals.buildLibrarySearchUrl = buildLibrarySearchUrl
 
+  const cspDirectives = { ...helmet.contentSecurityPolicy.getDefaultDirectives() }
+  cspDirectives['img-src'] = ["'self'", 'data:', 'https:']
+  // Otherwise browsers upgrade /styles.css to https on http://localhost
+  // (and HTTP droplets), and the page renders unstyled.
+  delete cspDirectives['upgrade-insecure-requests']
+
   app.use(
     helmet({
       contentSecurityPolicy: {
-        directives: {
-          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-          'img-src': ["'self'", 'data:', 'https:']
-        }
-      }
+        useDefaults: false,
+        directives: cspDirectives
+      },
+      strictTransportSecurity: process.env.NODE_ENV === 'production'
     })
   )
   app.use(cors())
@@ -47,8 +54,10 @@ export function createApp (): express.Express {
   app.use(express.static(path.join(moduleDir, 'public')))
 
   app.use('/health', healthRouter)
-  app.use('/api/books', booksRouter)
-  app.use('/books', booksViewRouter)
+  app.use('/login', loginRouter)
+  app.use('/api/login', apiLoginRouter)
+  app.use('/api/books', requireAuth, booksRouter)
+  app.use('/books', requireAuth, booksViewRouter)
 
   app.get('/', (_req, res) => res.redirect('/books'))
 

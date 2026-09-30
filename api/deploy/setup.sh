@@ -42,12 +42,17 @@ if [[ ! -f "$ENV_FILE" ]]; then
   DB_PASS="$(ask_secret 'Postgres password' "$(openssl rand -hex 16)")"
   ANTHROPIC_API_KEY="$(ask_secret 'Anthropic API key (optional)')"
   BUGSNAG_API_KEY="$(ask_secret 'BugSnag API key (optional)')"
+  APP_PASSWORD=""
+  while [[ -z "$APP_PASSWORD" ]]; do
+    APP_PASSWORD="$(ask_secret 'App password (required)')"
+  done
 
   sed \
     -e 's/^NODE_ENV=.*/NODE_ENV=production/' \
     -e "s/^PORT=.*/PORT=${PORT}/" \
     -e "s/^ANTHROPIC_API_KEY=.*/ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}/" \
     -e "s/^BUGSNAG_API_KEY=.*/BUGSNAG_API_KEY=${BUGSNAG_API_KEY}/" \
+    -e "s/^APP_PASSWORD=.*/APP_PASSWORD=${APP_PASSWORD}/" \
     -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}|" \
     "$API_ROOT/.env.example" > "$ENV_FILE"
   echo "Created $ENV_FILE"
@@ -66,6 +71,17 @@ else
   [[ -n "$DB_USER" && -n "$DB_PASS" && -n "$DB_NAME" ]] \
     || { echo "Could not parse DATABASE_URL in $ENV_FILE" >&2; exit 1; }
   echo "Using existing $ENV_FILE"
+  if ! grep -qE '^APP_PASSWORD=.+' "$ENV_FILE"; then
+    APP_PASSWORD=""
+    while [[ -z "$APP_PASSWORD" ]]; do
+      APP_PASSWORD="$(ask_secret 'App password (required)')"
+    done
+    if grep -qE '^APP_PASSWORD=' "$ENV_FILE"; then
+      sed -i "s/^APP_PASSWORD=.*/APP_PASSWORD=${APP_PASSWORD}/" "$ENV_FILE"
+    else
+      printf '\nAPP_PASSWORD=%s\n' "$APP_PASSWORD" >> "$ENV_FILE"
+    fi
+  fi
 fi
 
 DB_PASS_SQL="${DB_PASS//\'/\'\'}"
@@ -117,6 +133,15 @@ sed "s|__API_ROOT__|${API_ROOT}|g" \
   "$DEPLOY_DIR/systemd/book-camera-api.service.template" > /etc/systemd/system/book-camera-api.service
 systemctl daemon-reload
 
+# Limited passwordless sudo so CI activate.sh can restart without a TTY password prompt
+SYSTEMCTL="$(command -v systemctl)"
+SUDOERS_FILE=/etc/sudoers.d/deploy-book-camera-api
+cat > "$SUDOERS_FILE" <<EOF
+${DEPLOY_USER} ALL=(root) NOPASSWD: ${SYSTEMCTL} restart book-camera-api, ${SYSTEMCTL} status book-camera-api, ${SYSTEMCTL} status book-camera-api --no-pager
+EOF
+chmod 440 "$SUDOERS_FILE"
+visudo -cf "$SUDOERS_FILE"
+
 sed \
   -e "s|__PORT__|${PORT}|g" \
   -e "s|__DOMAIN__|${DOMAIN}|g" \
@@ -127,7 +152,7 @@ nginx -t
 
 echo "Setup complete."
 echo "Next:"
-echo "  1. Configure CI deploy user/keys (see api/DEPLOY.md)"
+echo "  1. Configure CI deploy SSH keys (see api/DEPLOY.md)"
 echo "  2. Sync a built release via GitHub Actions (dist + node_modules + migrations)"
 echo "  3. Then: sudo ./deploy/start.sh"
 echo "  4. Optional TLS: sudo ./deploy/ssl-setup.sh ${DOMAIN}"

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · Book Camera</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <span class="brand">📚 Book Camera</span>
+  </header>
+  <main class="container login-container">
+    <form class="book-form login-form" method="POST" action="/login">
+      <h1>Sign in</h1>
+      <p class="hint">Enter the shared password to open your library.</p>
+      <input type="hidden" name="next" value="<%= next %>" />
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autofocus required />
+        <% if (error) { %><p class="field-error"><%= error %></p><% } %>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="button primary">Continue</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>
