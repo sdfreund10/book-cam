@@ -9,7 +9,6 @@ import {
 } from '../auth/session.js'
 
 export const loginRouter = Router()
-export const apiLoginRouter = Router()
 
 loginRouter.get('/', (req, res) => {
   if (isAuthenticated(req)) {
@@ -38,17 +37,4 @@ loginRouter.post('/', (req, res) => {
   const token = sessionToken()
   setSessionCookie(req, res, token)
   res.redirect(nextPath)
-})
-
-apiLoginRouter.post('/', (req, res) => {
-  const password = typeof req.body?.password === 'string' ? req.body.password : ''
-
-  if (!passwordsMatch(password)) {
-    res.status(401).json({ error: 'Invalid password' })
-    return
-  }
-
-  const token = sessionToken()
-  setSessionCookie(req, res, token)
-  res.json({ data: { token } })
 })

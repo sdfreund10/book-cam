@@ -17,7 +17,7 @@ const tinyJpeg = Buffer.from(
   'base64'
 )
 
-describe('POST /api/books/scan', () => {
+describe('POST /books/scan', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedIdentify.mockResolvedValue({
@@ -32,29 +32,29 @@ describe('POST /api/books/scan', () => {
   })
 
   it('returns 400 when the cover field is missing', async () => {
-    const res = await request.post('/api/books/scan')
+    const res = await request.post('/books/scan')
 
     expect(res.status).toBe(400)
-    expect(res.body.error).toBe('A cover image file is required (field name "cover")')
+    expect(res.text).toContain('Please choose a photo of a book cover to scan.')
     expect(mockedIdentify).not.toHaveBeenCalled()
   })
 
   it('returns 400 when the upload is not an image', async () => {
     const res = await request
-      .post('/api/books/scan')
+      .post('/books/scan')
       .attach('cover', Buffer.from('not-an-image'), {
         filename: 'notes.txt',
         contentType: 'text/plain'
       })
 
     expect(res.status).toBe(400)
-    expect(res.body.error).toBe('Please upload an image file.')
+    expect(res.text).toContain('Please upload an image file.')
     expect(mockedIdentify).not.toHaveBeenCalled()
   })
 
   it('returns 400 when the wrong field name is used', async () => {
     const res = await request
-      .post('/api/books/scan')
+      .post('/books/scan')
       .attach('photo', tinyJpeg, {
         filename: 'cover.jpg',
         contentType: 'image/jpeg'
@@ -62,28 +62,22 @@ describe('POST /api/books/scan', () => {
 
     expect(res.status).toBe(400)
     // Multer rejects unexpected fields before the missing-cover check runs.
-    expect(res.body.error).toBe('Please upload an image file.')
+    expect(res.text).toContain('Please upload an image file.')
     expect(mockedIdentify).not.toHaveBeenCalled()
   })
 
-  it('returns a draft and warnings for a valid JPEG', async () => {
+  it('pre-fills the new-book form for a valid JPEG', async () => {
     const res = await request
-      .post('/api/books/scan')
+      .post('/books/scan')
       .attach('cover', tinyJpeg, {
         filename: 'cover.jpg',
         contentType: 'image/jpeg'
       })
 
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({
-      data: {
-        title: 'Dune',
-        author: 'Frank Herbert',
-        status: 'to read',
-        coverImageUri: 'https://covers.openlibrary.org/b/id/456-L.jpg'
-      },
-      warnings: []
-    })
+    expect(res.text).toContain('value="Dune"')
+    expect(res.text).toContain('value="Frank Herbert"')
+    expect(res.text).toContain('https://covers.openlibrary.org/b/id/456-L.jpg')
     expect(mockedIdentify).toHaveBeenCalledOnce()
     expect(mockedIdentify.mock.calls[0]?.[1]).toBe('image/jpeg')
     expect(mockedIdentify.mock.calls[0]?.[2]).toBe('cover.jpg')
@@ -93,14 +87,14 @@ describe('POST /api/books/scan', () => {
     const oversized = Buffer.alloc(8 * 1024 * 1024 + 1, 0xff)
 
     const res = await request
-      .post('/api/books/scan')
+      .post('/books/scan')
       .attach('cover', oversized, {
         filename: 'huge.jpg',
         contentType: 'image/jpeg'
       })
 
     expect(res.status).toBe(400)
-    expect(res.body.error).toBe('That image is too large (max 8MB).')
+    expect(res.text).toContain('That image is too large (max 8MB).')
     expect(mockedIdentify).not.toHaveBeenCalled()
   })
 })

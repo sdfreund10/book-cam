@@ -27,9 +27,9 @@ export interface ValidateBookOptions {
 }
 
 /**
- * Validates book input from either a JSON body or an HTML form submission.
+ * Validates book input from an HTML form submission.
  * When `partial` is true, missing fields are simply omitted from the result
- * instead of raising an error (used for PATCH-style updates).
+ * instead of raising an error.
  */
 export function validateBook (
   input: Record<string, unknown> = {},

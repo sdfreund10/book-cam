@@ -12,7 +12,7 @@ function describeMulterError (err: multer.MulterError): string {
   return 'There was a problem with the uploaded file.'
 }
 
-export function errorHandler (err: unknown, req: Request, res: Response, _next: NextFunction): void {
+export function errorHandler (err: unknown, _req: Request, res: Response, _next: NextFunction): void {
   const httpError: HttpError =
     err instanceof multer.MulterError
       ? Object.assign(new Error(describeMulterError(err)), { statusCode: 400 })
@@ -25,11 +25,6 @@ export function errorHandler (err: unknown, req: Request, res: Response, _next: 
 
   if (statusCode >= 500) {
     console.error(httpError)
-  }
-
-  if (req.path.startsWith('/api/')) {
-    res.status(statusCode).json({ error: message, details: httpError.details })
-    return
   }
 
   res.status(statusCode).render('error', { statusCode, message })

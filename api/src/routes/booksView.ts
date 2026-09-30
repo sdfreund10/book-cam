@@ -2,12 +2,18 @@ import { Router } from 'express'
 
 import { createBook, deleteBook, getBook, listBooks, updateBook } from '../data/books.js'
 import { uploadCoverImage } from '../middleware/upload.js'
+import { addCoverImage } from '../services/booksService.js'
 import { identifyBookFromCover } from '../services/identifyBookFromCover.js'
 import type { BookDraft } from '../types/book.js'
 import { ApiError } from '../utils/ApiError.js'
 import { validateBook } from '../utils/validateBook.js'
 
 export const booksViewRouter = Router()
+
+function parseBookId (raw: string): number | undefined {
+  const id = Number.parseInt(raw, 10)
+  return Number.isInteger(id) && id > 0 ? id : undefined
+}
 
 booksViewRouter.get('/', async (_req, res, next) => {
   try {
@@ -47,7 +53,8 @@ booksViewRouter.post('/', async (req, res, next) => {
       return res.status(400).render('books/new', { book: req.body, errors })
     }
 
-    const book = await createBook(data as BookDraft)
+    const created = await createBook(data as BookDraft)
+    const book = await addCoverImage(created)
 
     res.redirect(`/books/${book.id}`)
   } catch (err) {
@@ -56,7 +63,9 @@ booksViewRouter.post('/', async (req, res, next) => {
 })
 
 booksViewRouter.get('/:id', async (req, res, next) => {
-  const bookId = parseInt(req.params.id)
+  const bookId = parseBookId(req.params.id)
+  if (bookId == null) return next(ApiError.notFound('Book not found'))
+
   const book = await getBook(bookId)
   if (book == null) return next(ApiError.notFound('Book not found'))
 
@@ -64,7 +73,8 @@ booksViewRouter.get('/:id', async (req, res, next) => {
 })
 
 booksViewRouter.get('/:id/edit', async (req, res, next) => {
-  const bookId = parseInt(req.params.id)
+  const bookId = parseBookId(req.params.id)
+  if (bookId == null) return next(ApiError.notFound('Book not found'))
 
   const book = await getBook(bookId)
   if (book == null) return next(ApiError.notFound('Book not found'))
@@ -73,7 +83,9 @@ booksViewRouter.get('/:id/edit', async (req, res, next) => {
 })
 
 booksViewRouter.post('/:id/edit', async (req, res, next) => {
-  const bookId = parseInt(req.params.id)
+  const bookId = parseBookId(req.params.id)
+  if (bookId == null) return next(ApiError.notFound('Book not found'))
+
   const existing = await getBook(bookId)
   if (existing == null) return next(ApiError.notFound('Book not found'))
 
@@ -87,7 +99,9 @@ booksViewRouter.post('/:id/edit', async (req, res, next) => {
 })
 
 booksViewRouter.post('/:id/delete', async (req, res, next) => {
-  const bookId = parseInt(req.params.id)
+  const bookId = parseBookId(req.params.id)
+  if (bookId == null) return next(ApiError.notFound('Book not found'))
+
   const wasDeleted = await deleteBook(bookId)
   if (!wasDeleted) return next(ApiError.notFound('Book not found'))
 

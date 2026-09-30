@@ -23,45 +23,32 @@ describe('authentication', () => {
     expect(res.headers['content-security-policy'] ?? '').not.toMatch(/upgrade-insecure-requests/)
   })
 
-  it('rejects unauthenticated API requests', async () => {
-    const res = await request(app).get('/api/books')
-
-    expect(res.status).toBe(401)
-    expect(res.body).toEqual({ error: 'Unauthorized' })
-  })
-
   it('rejects an incorrect password', async () => {
     const res = await request(app)
-      .post('/api/login')
+      .post('/login')
+      .type('form')
       .send({ password: 'not-the-password' })
 
     expect(res.status).toBe(401)
-    expect(res.body).toEqual({ error: 'Invalid password' })
+    expect(res.text).toContain('That password is incorrect.')
   })
 
-  it('returns a token that unlocks the API', async () => {
-    const login = await request(app)
-      .post('/api/login')
-      .send({ password })
-
-    expect(login.status).toBe(200)
-    expect(login.body.data.token).toBe(sessionToken())
-
+  it('accepts a bearer token on HTML routes', async () => {
     const res = await request(app)
-      .get('/api/books')
-      .set('Authorization', `Bearer ${login.body.data.token as string}`)
+      .get('/books')
+      .set('Authorization', `Bearer ${sessionToken()}`)
 
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ data: [] })
+    expect(res.text).toContain('Your Books')
   })
 
   it('accepts HTTP basic auth with the shared password', async () => {
     const res = await request(app)
-      .get('/api/books')
+      .get('/books')
       .auth('book-camera', password)
 
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ data: [] })
+    expect(res.text).toContain('Your Books')
   })
 
   it('sets a long-lived session cookie on the HTML login form', async () => {
@@ -76,8 +63,9 @@ describe('authentication', () => {
     expect(login.headers.location).toBe('/books')
     expect(login.headers['set-cookie']?.join(';')).toContain(`${SESSION_COOKIE}=`)
 
-    const res = await agent.get('/api/books')
+    const res = await agent.get('/books')
     expect(res.status).toBe(200)
+    expect(res.text).toContain('Your Books')
   })
 
   it('redirects unauthenticated HTML requests to /login', async () => {

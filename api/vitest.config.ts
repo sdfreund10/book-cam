@@ -32,7 +32,8 @@ export default defineConfig({
             'test/health.test.ts',
             'test/auth.test.ts',
             'test/books.test.ts',
-            'test/books.scan.test.ts'
+            'test/books.scan.test.ts',
+            'test/pwa.test.ts'
           ],
           setupFiles: ['./test/setup.ts'],
           env: sharedEnv

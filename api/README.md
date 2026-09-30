@@ -1,6 +1,24 @@
-# Book Camera API
+# Book Camera
 
-Express + Postgres API for the Book Camera app.
+Express + Postgres web app for a personal reading list: scan a cover (or enter a book by hand), then browse, edit, and search the library catalog.
+
+The site is a progressive web app. On a phone, use **Add to Home Screen** (Safari) or **Install app** (Chrome) to open it as a standalone icon. Install needs HTTPS in production.
+
+## Routes
+
+| Path | What it does |
+|------|----------------|
+| `/` | Redirects to `/books` |
+| `/login` | Password prompt; sets a long-lived session cookie |
+| `/books` | List |
+| `/books/scan` | Photograph or pick a cover, then pre-fill a new book |
+| `/books/new` | Add a book by hand |
+| `/books/:id` | Show |
+| `/books/:id/edit` | Edit |
+| `/health` | JSON health check for deploys |
+| `/manifest.json`, `/sw.js` | PWA install assets |
+
+There is no separate native app and no JSON `/api/books` surface. Forms post back to these HTML routes.
 
 ## Local development
 
@@ -24,6 +42,8 @@ npm run dev            # http://localhost:4000  (PORT in .env)
 `/` redirects to `/books`, which asks for `APP_PASSWORD` once, then lists books. If that page 500s with an internal server error, the development database or tables are missing — run the `createdb` / `db:push:dev` steps above.
 
 Set `APP_PASSWORD` to a shared secret. The web UI asks for it once, then keeps a session cookie on that browser until the password changes.
+
+Open `http://localhost:4000`. Cover scan works in a phone browser against that origin when the machine is reachable on your LAN.
 
 ## Deployment
 
@@ -59,7 +79,7 @@ sudo ./deploy/start.sh
 
 Enables and starts Postgres, the API, and nginx. Later deploys only need `activate.sh` (invoked by Actions).
 
-Optional TLS:
+Optional TLS (needed for install-as-app):
 
 ```sh
 sudo ./deploy/ssl-setup.sh api.example.com
@@ -75,4 +95,3 @@ Useful follow-ups:
 
 - Edit `api/.env` and `sudo systemctl restart book-camera-api` if you need to change keys later.
 - Logs: `journalctl -u book-camera-api -f`
-- Point the mobile app’s `PRODUCTION_API_BASE_URL` at this server’s public URL (HTTPS when you add TLS).

@@ -2,15 +2,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import express from 'express'
-import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
 import { bugsnagErrorHandler, bugsnagRequestHandler } from './middleware/bugsnag.js'
 import { requireAuth } from './middleware/requireAuth.js'
 import { healthRouter } from './routes/health.js'
-import { apiLoginRouter, loginRouter } from './routes/login.js'
-import { booksRouter } from './routes/books.js'
+import { loginRouter } from './routes/login.js'
 import { booksViewRouter } from './routes/booksView.js'
 import { notFoundHandler } from './middleware/notFound.js'
 import { errorHandler } from './middleware/errorHandler.js'
@@ -32,6 +30,8 @@ export function createApp (): express.Express {
 
   const cspDirectives = { ...helmet.contentSecurityPolicy.getDefaultDirectives() }
   cspDirectives['img-src'] = ["'self'", 'data:', 'https:']
+  cspDirectives['manifest-src'] = ["'self'"]
+  cspDirectives['worker-src'] = ["'self'"]
   // Otherwise browsers upgrade /styles.css to https on http://localhost
   // (and HTTP droplets), and the page renders unstyled.
   delete cspDirectives['upgrade-insecure-requests']
@@ -45,18 +45,20 @@ export function createApp (): express.Express {
       strictTransportSecurity: process.env.NODE_ENV === 'production'
     })
   )
-  app.use(cors())
   if (process.env.NODE_ENV !== 'test') {
     app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
   }
-  app.use(express.json())
   app.use(express.urlencoded({ extended: true }))
-  app.use(express.static(path.join(moduleDir, 'public')))
+  app.use(express.static(path.join(moduleDir, 'public'), {
+    setHeaders (res: express.Response, filePath: string): void {
+      if (filePath.endsWith(`${path.sep}manifest.json`)) {
+        res.setHeader('Content-Type', 'application/manifest+json')
+      }
+    }
+  }))
 
   app.use('/health', healthRouter)
   app.use('/login', loginRouter)
-  app.use('/api/login', apiLoginRouter)
-  app.use('/api/books', requireAuth, booksRouter)
   app.use('/books', requireAuth, booksViewRouter)
 
   app.get('/', (_req, res) => res.redirect('/books'))
