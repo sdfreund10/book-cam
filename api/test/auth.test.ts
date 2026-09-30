@@ -33,19 +33,10 @@ describe('authentication', () => {
     expect(res.text).toContain('That password is incorrect.')
   })
 
-  it('accepts a bearer token on HTML routes', async () => {
+  it('accepts the session cookie on HTML routes', async () => {
     const res = await request(app)
       .get('/books')
-      .set('Authorization', `Bearer ${sessionToken()}`)
-
-    expect(res.status).toBe(200)
-    expect(res.text).toContain('Your Books')
-  })
-
-  it('accepts HTTP basic auth with the shared password', async () => {
-    const res = await request(app)
-      .get('/books')
-      .auth('book-camera', password)
+      .set('Cookie', `${SESSION_COOKIE}=${sessionToken()}`)
 
     expect(res.status).toBe(200)
     expect(res.text).toContain('Your Books')

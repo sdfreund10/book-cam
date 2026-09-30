@@ -32,12 +32,6 @@ export function tokensMatch (candidate: string): boolean {
 export function isAuthenticated (req: Request): boolean {
   if (!isAuthConfigured()) return false
 
-  const bearer = bearerToken(req)
-  if (bearer != null && tokensMatch(bearer)) return true
-
-  const basicPassword = basicAuthPassword(req)
-  if (basicPassword != null && passwordsMatch(basicPassword)) return true
-
   const cookie = cookieValue(req, SESSION_COOKIE)
   return cookie != null && tokensMatch(cookie)
 }
@@ -66,27 +60,6 @@ function secretEqual (a: string, b: string): boolean {
 
 function isSecureRequest (req: Request): boolean {
   return req.secure || req.get('x-forwarded-proto') === 'https'
-}
-
-function bearerToken (req: Request): string | undefined {
-  const header = req.get('authorization')
-  if (header == null || !header.startsWith('Bearer ')) return undefined
-  const token = header.slice('Bearer '.length).trim()
-  return token === '' ? undefined : token
-}
-
-function basicAuthPassword (req: Request): string | undefined {
-  const header = req.get('authorization')
-  if (header == null || !header.startsWith('Basic ')) return undefined
-
-  try {
-    const decoded = Buffer.from(header.slice('Basic '.length).trim(), 'base64').toString('utf8')
-    const colon = decoded.indexOf(':')
-    const password = colon === -1 ? decoded : decoded.slice(colon + 1)
-    return password === '' ? undefined : password
-  } catch {
-    return undefined
-  }
 }
 
 function cookieValue (req: Request, name: string): string | undefined {
