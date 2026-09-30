@@ -31,7 +31,9 @@ export function createApp (): express.Express {
       contentSecurityPolicy: {
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-          'img-src': ["'self'", 'data:', 'https:']
+          'img-src': ["'self'", 'data:', 'https:'],
+          'manifest-src': ["'self'"],
+          'worker-src': ["'self'"]
         }
       }
     })
@@ -40,7 +42,13 @@ export function createApp (): express.Express {
     app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
   }
   app.use(express.urlencoded({ extended: true }))
-  app.use(express.static(path.join(moduleDir, 'public')))
+  app.use(express.static(path.join(moduleDir, 'public'), {
+    setHeaders (res: express.Response, filePath: string): void {
+      if (filePath.endsWith(`${path.sep}manifest.json`)) {
+        res.setHeader('Content-Type', 'application/manifest+json')
+      }
+    }
+  }))
 
   app.use('/health', healthRouter)
   app.use('/books', booksViewRouter)
