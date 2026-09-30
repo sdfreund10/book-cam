@@ -4,7 +4,6 @@ import {
   isAuthenticated,
   passwordsMatch,
   safeNextPath,
-  sessionToken,
   setSessionCookie
 } from '../auth/session.js'
 
@@ -34,7 +33,6 @@ loginRouter.post('/', (req, res) => {
     return
   }
 
-  const token = sessionToken()
-  setSessionCookie(req, res, token)
+  setSessionCookie(req, res)
   res.redirect(nextPath)
 })

@@ -8,17 +8,6 @@ export function requireAuth (req: Request, res: Response, next: NextFunction): v
     return
   }
 
-  if (wantsJson(req)) {
-    res.status(401).json({ error: 'Unauthorized' })
-    return
-  }
-
   const nextPath = encodeURIComponent(req.originalUrl)
   res.redirect(`/login?next=${nextPath}`)
-}
-
-function wantsJson (req: Request): boolean {
-  if (req.path.startsWith('/api/') || req.originalUrl.startsWith('/api/')) return true
-  const accept = req.get('accept') ?? ''
-  return accept.includes('application/json') && !accept.includes('text/html')
 }
