@@ -39,6 +39,7 @@ describe('PWA assets', () => {
     const res = await request(app).get('/books')
 
     expect(res.status).toBe(200)
+    expect(res.text).toContain('viewport-fit=cover')
     expect(res.text).toContain('rel="manifest"')
     expect(res.text).toContain('href="/manifest.json"')
     expect(res.text).toContain('rel="apple-touch-icon"')
