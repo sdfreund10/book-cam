@@ -21,4 +21,4 @@ systemctl enable --now certbot.timer
 certbot renew --dry-run
 
 echo "SSL setup complete for $DOMAIN"
-echo "Certificate renews automatically via certbot.timer"
+echo "HTTP now redirects to HTTPS; certificate renews automatically via certbot.timer"

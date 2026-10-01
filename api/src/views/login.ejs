@@ -17,8 +17,8 @@
       <input type="hidden" name="next" value="<%= next %>" />
       <div class="field">
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" autofocus required />
-        <% if (error) { %><p class="field-error"><%= error %></p><% } %>
+        <input type="password" id="password" name="password" autofocus required<% if (error) { %> aria-invalid="true" aria-describedby="password-error"<% } %> />
+        <% if (error) { %><p id="password-error" class="field-error" role="alert"><%= error %></p><% } %>
       </div>
       <div class="form-actions">
         <button type="submit" class="button primary">Continue</button>

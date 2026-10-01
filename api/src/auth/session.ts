@@ -27,7 +27,9 @@ export function setSessionCookie (req: Request, res: Response): void {
   res.cookie(SESSION_COOKIE, sessionToken(), {
     httpOnly: true,
     sameSite: 'lax',
-    secure: isSecureRequest(req),
+    // Production always sets Secure so the reusable session token is never
+    // stored on an HTTP origin even if a proxy header is missing.
+    secure: process.env.NODE_ENV === 'production' || isSecureRequest(req),
     maxAge: TEN_YEARS_MS,
     path: '/'
   })
@@ -49,7 +51,7 @@ function secretEqual (a: string, b: string): boolean {
   return timingSafeEqual(left, right)
 }
 
-function isSecureRequest (req: Request): boolean {
+export function isSecureRequest (req: Request): boolean {
   return req.secure || req.get('x-forwarded-proto') === 'https'
 }
 

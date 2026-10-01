@@ -19,6 +19,10 @@ const moduleDir = path.dirname(fileURLToPath(import.meta.url))
 export function createApp (): express.Express {
   const app = express()
 
+  // nginx sets X-Forwarded-Proto / X-Forwarded-For; needed for Secure cookies
+  // (req.secure) and per-IP login rate limits (req.ip).
+  app.set('trust proxy', 1)
+
   // Must be first so BugSnag can capture errors from downstream middleware.
   app.use(bugsnagRequestHandler)
 
@@ -32,9 +36,11 @@ export function createApp (): express.Express {
   cspDirectives['img-src'] = ["'self'", 'data:', 'https:']
   cspDirectives['manifest-src'] = ["'self'"]
   cspDirectives['worker-src'] = ["'self'"]
-  // Otherwise browsers upgrade /styles.css to https on http://localhost
-  // (and HTTP droplets), and the page renders unstyled.
-  delete cspDirectives['upgrade-insecure-requests']
+  // Local HTTP (and tests) must not upgrade assets to https. Production
+  // login is HTTPS-only, so keep the default upgrade there.
+  if (process.env.NODE_ENV !== 'production') {
+    delete cspDirectives['upgrade-insecure-requests']
+  }
 
   app.use(
     helmet({

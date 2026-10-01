@@ -59,7 +59,7 @@ git clone https://github.com/OWNER/REPO.git && cd REPO/api
 sudo ./deploy/setup.sh
 ```
 
-`setup.sh` prompts for port, public domain, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs system packages, creates the database and `book-camera-deploy` user, and installs the systemd unit and nginx reverse proxy. It does **not** build TypeScript or run `npm ci` (CI ships `dist/` and production `node_modules/` to avoid OOM on small droplets).
+`setup.sh` prompts for port, public domain, Postgres user/database/password, `APP_PASSWORD`, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs system packages, creates the database and `book-camera-deploy` user, and installs the systemd unit and nginx reverse proxy. It does **not** build TypeScript or run `npm ci` (CI ships `dist/` and production `node_modules/` to avoid OOM on small droplets).
 
 Schema changes for production must be committed as generated migrations (`npm run db:migration:generate`). Local `db:push:dev` does not create migration files.
 
@@ -79,7 +79,7 @@ sudo ./deploy/start.sh
 
 Enables and starts Postgres, the API, and nginx. Later deploys only need `activate.sh` (invoked by Actions).
 
-Optional TLS (needed for install-as-app):
+Required TLS (login sends the shared password; also needed for install-as-app). `ssl-setup.sh` asks certbot to add HTTPS and redirect HTTP:
 
 ```sh
 sudo ./deploy/ssl-setup.sh api.example.com

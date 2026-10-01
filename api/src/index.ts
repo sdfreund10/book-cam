@@ -8,7 +8,8 @@ const port = Number.isNaN(parsedPort) ? 4000 : parsedPort
 const app = createApp()
 
 if (process.env.APP_PASSWORD == null || process.env.APP_PASSWORD === '') {
-  console.warn('APP_PASSWORD is not set; logins will be rejected')
+  console.error('APP_PASSWORD is required')
+  process.exit(1)
 }
 
 app.listen(port, () => {

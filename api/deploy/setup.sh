@@ -32,6 +32,46 @@ ask_secret() {
   fi
 }
 
+# dotenv 16 only unescapes \n/\r inside double quotes and does not strip
+# backslash-escapes, so pick a quote style that stores the exact password.
+validate_app_password() {
+  local value="$1"
+  [[ -z "$value" ]] && return 1
+  if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+    echo "App password cannot contain line breaks" >&2
+    return 1
+  fi
+  if [[ "$value" == *"'"* && ( "$value" == *'"'* || "$value" == *'\'* ) ]]; then
+    echo "App password cannot mix a single quote with a double quote or backslash" >&2
+    return 1
+  fi
+}
+
+dotenv_quote() {
+  local value="$1"
+  validate_app_password "$value" || return 1
+  if [[ "$value" != *'"'* && "$value" != *'\'* ]]; then
+    printf '"%s"' "$value"
+  else
+    printf "'%s'" "$value"
+  fi
+}
+
+upsert_env() {
+  local file="$1" key="$2" value="$3" line tmp
+  line="${key}=$(dotenv_quote "$value")"
+  if grep -qE "^${key}=" "$file"; then
+    tmp="$(mktemp)"
+    ENV_LINE="$line" ENV_KEY="$key" awk '
+      BEGIN { keyre = "^" ENVIRON["ENV_KEY"] "=" }
+      $0 ~ keyre { print ENVIRON["ENV_LINE"]; next }
+      { print }
+    ' "$file" > "$tmp" && mv "$tmp" "$file"
+  else
+    printf '\n%s\n' "$line" >> "$file"
+  fi
+}
+
 # If .env does not exist, prompt the user for the environment variables and create the file
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Configuring production environment"
@@ -43,7 +83,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   ANTHROPIC_API_KEY="$(ask_secret 'Anthropic API key (optional)')"
   BUGSNAG_API_KEY="$(ask_secret 'BugSnag API key (optional)')"
   APP_PASSWORD=""
-  while [[ -z "$APP_PASSWORD" ]]; do
+  while ! validate_app_password "$APP_PASSWORD"; do
     APP_PASSWORD="$(ask_secret 'App password (required)')"
   done
 
@@ -52,9 +92,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
     -e "s/^PORT=.*/PORT=${PORT}/" \
     -e "s/^ANTHROPIC_API_KEY=.*/ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}/" \
     -e "s/^BUGSNAG_API_KEY=.*/BUGSNAG_API_KEY=${BUGSNAG_API_KEY}/" \
-    -e "s/^APP_PASSWORD=.*/APP_PASSWORD=${APP_PASSWORD}/" \
     -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}|" \
     "$API_ROOT/.env.example" > "$ENV_FILE"
+  upsert_env "$ENV_FILE" APP_PASSWORD "$APP_PASSWORD"
   echo "Created $ENV_FILE"
 else
   PORT="$(grep -E '^PORT=' "$ENV_FILE" | cut -d= -f2- || true)"
@@ -73,14 +113,10 @@ else
   echo "Using existing $ENV_FILE"
   if ! grep -qE '^APP_PASSWORD=.+' "$ENV_FILE"; then
     APP_PASSWORD=""
-    while [[ -z "$APP_PASSWORD" ]]; do
+    while ! validate_app_password "$APP_PASSWORD"; do
       APP_PASSWORD="$(ask_secret 'App password (required)')"
     done
-    if grep -qE '^APP_PASSWORD=' "$ENV_FILE"; then
-      sed -i "s/^APP_PASSWORD=.*/APP_PASSWORD=${APP_PASSWORD}/" "$ENV_FILE"
-    else
-      printf '\nAPP_PASSWORD=%s\n' "$APP_PASSWORD" >> "$ENV_FILE"
-    fi
+    upsert_env "$ENV_FILE" APP_PASSWORD "$APP_PASSWORD"
   fi
 fi
 
@@ -155,4 +191,4 @@ echo "Next:"
 echo "  1. Configure CI deploy SSH keys (see api/DEPLOY.md)"
 echo "  2. Sync a built release via GitHub Actions (dist + node_modules + migrations)"
 echo "  3. Then: sudo ./deploy/start.sh"
-echo "  4. Optional TLS: sudo ./deploy/ssl-setup.sh ${DOMAIN}"
+echo "  4. Required TLS (login sends a password): sudo ./deploy/ssl-setup.sh ${DOMAIN}"
