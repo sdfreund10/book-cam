@@ -7,9 +7,11 @@ vi.mock('../src/services/bookLookupService.js', () => ({
 
 const { lookupBookMetadata } = await import('../src/services/bookLookupService.js')
 const { createApp } = await import('../src/app.js')
+const { authed } = await import('./helpers/authed.js')
 
 const mockedLookup = vi.mocked(lookupBookMetadata)
 const app = createApp()
+const api = authed(app)
 
 const sampleBook = {
   title: 'The Left Hand of Darkness',
@@ -24,7 +26,7 @@ function bookIdFromRedirect (location: string | undefined): number {
 }
 
 async function postBook (fields: Record<string, string> = sampleBook): Promise<request.Response> {
-  return await request(app).post('/books').type('form').send(fields)
+  return await api.post('/books').type('form').send(fields)
 }
 
 describe('GET /books', () => {
@@ -34,7 +36,7 @@ describe('GET /books', () => {
   })
 
   it('shows an empty list when there are no books', async () => {
-    const res = await request(app).get('/books')
+    const res = await api.get('/books')
 
     expect(res.status).toBe(200)
     expect(res.text).toContain('No books yet')
@@ -43,7 +45,7 @@ describe('GET /books', () => {
   it('lists created books', async () => {
     await postBook()
 
-    const res = await request(app).get('/books')
+    const res = await api.get('/books')
 
     expect(res.status).toBe(200)
     expect(res.text).toContain(sampleBook.title)
@@ -63,14 +65,14 @@ describe('POST /books', () => {
     expect(res.status).toBe(302)
     const id = bookIdFromRedirect(res.headers.location)
 
-    const show = await request(app).get(`/books/${id}`)
+    const show = await api.get(`/books/${id}`)
     expect(show.status).toBe(200)
     expect(show.text).toContain(sampleBook.title)
     expect(show.text).toContain(sampleBook.author)
   })
 
   it('rejects invalid book data', async () => {
-    const res = await request(app).post('/books').type('form').send({ title: 'Missing author' })
+    const res = await api.post('/books').type('form').send({ title: 'Missing author' })
 
     expect(res.status).toBe(400)
     expect(res.text).toContain('Author is required')
@@ -87,7 +89,7 @@ describe('POST /books', () => {
     const res = await postBook()
     const id = bookIdFromRedirect(res.headers.location)
 
-    const show = await request(app).get(`/books/${id}`)
+    const show = await api.get(`/books/${id}`)
     expect(show.text).toContain('https://covers.openlibrary.org/b/id/123-L.jpg')
     expect(mockedLookup).toHaveBeenCalledWith({
       title: sampleBook.title,
@@ -104,7 +106,7 @@ describe('POST /books', () => {
     const res = await postBook(withCover)
     const id = bookIdFromRedirect(res.headers.location)
 
-    const show = await request(app).get(`/books/${id}`)
+    const show = await api.get(`/books/${id}`)
     expect(show.text).toContain('https://example.com/my-cover.jpg')
     expect(mockedLookup).not.toHaveBeenCalled()
   })
@@ -115,7 +117,7 @@ describe('POST /books', () => {
     const res = await postBook()
     const id = bookIdFromRedirect(res.headers.location)
 
-    const show = await request(app).get(`/books/${id}`)
+    const show = await api.get(`/books/${id}`)
     expect(show.text).not.toContain('alt="Cover of')
     expect(mockedLookup).toHaveBeenCalledOnce()
   })
@@ -128,7 +130,7 @@ describe('POST /books', () => {
     })
     const id = bookIdFromRedirect(res.headers.location)
 
-    const show = await request(app).get(`/books/${id}`)
+    const show = await api.get(`/books/${id}`)
     expect(show.text).toContain('Gift from Alex')
     expect(show.text).toContain('https://example.com/cover.jpg')
   })
@@ -144,7 +146,7 @@ describe('GET /books/:id', () => {
     const created = await postBook()
     const id = bookIdFromRedirect(created.headers.location)
 
-    const res = await request(app).get(`/books/${id}`)
+    const res = await api.get(`/books/${id}`)
 
     expect(res.status).toBe(200)
     expect(res.text).toContain(sampleBook.title)
@@ -152,14 +154,14 @@ describe('GET /books/:id', () => {
   })
 
   it('returns 404 for a missing book', async () => {
-    const res = await request(app).get('/books/999999')
+    const res = await api.get('/books/999999')
 
     expect(res.status).toBe(404)
     expect(res.text).toContain('Book not found')
   })
 
   it.each(['abc', '0', '-1'])('returns 404 for invalid id %s', async (id) => {
-    const res = await request(app).get(`/books/${id}`)
+    const res = await api.get(`/books/${id}`)
 
     expect(res.status).toBe(404)
     expect(res.text).toContain('Book not found')
@@ -182,18 +184,18 @@ describe('POST /books/:id/edit', () => {
       status: 'finished'
     }
 
-    const res = await request(app).post(`/books/${id}/edit`).type('form').send(updated)
+    const res = await api.post(`/books/${id}/edit`).type('form').send(updated)
 
     expect(res.status).toBe(302)
     expect(res.headers.location).toBe(`/books/${id}`)
 
-    const show = await request(app).get(`/books/${id}`)
+    const show = await api.get(`/books/${id}`)
     expect(show.text).toContain(updated.title)
     expect(show.text).toContain('finished')
   })
 
   it('returns 404 when editing a missing book', async () => {
-    const res = await request(app).post('/books/999999/edit').type('form').send(sampleBook)
+    const res = await api.post('/books/999999/edit').type('form').send(sampleBook)
 
     expect(res.status).toBe(404)
     expect(res.text).toContain('Book not found')
@@ -203,7 +205,7 @@ describe('POST /books/:id/edit', () => {
     const created = await postBook()
     const id = bookIdFromRedirect(created.headers.location)
 
-    const res = await request(app).post(`/books/${id}/edit`).type('form').send({ title: 'Only title' })
+    const res = await api.post(`/books/${id}/edit`).type('form').send({ title: 'Only title' })
 
     expect(res.status).toBe(400)
     expect(res.text).toContain('Author is required')
@@ -214,7 +216,7 @@ describe('POST /books/:id/edit', () => {
     const created = await postBook()
     const id = bookIdFromRedirect(created.headers.location)
 
-    const res = await request(app).post(`/books/${id}/edit`).type('form').send({
+    const res = await api.post(`/books/${id}/edit`).type('form').send({
       ...sampleBook,
       status: 'reading'
     })
@@ -224,7 +226,7 @@ describe('POST /books/:id/edit', () => {
   })
 
   it.each(['abc', '0', '-1'])('returns 404 for invalid id %s', async (id) => {
-    const res = await request(app).post(`/books/${id}/edit`).type('form').send(sampleBook)
+    const res = await api.post(`/books/${id}/edit`).type('form').send(sampleBook)
 
     expect(res.status).toBe(404)
     expect(res.text).toContain('Book not found')
@@ -241,24 +243,24 @@ describe('POST /books/:id/delete', () => {
     const created = await postBook()
     const id = bookIdFromRedirect(created.headers.location)
 
-    const res = await request(app).post(`/books/${id}/delete`)
+    const res = await api.post(`/books/${id}/delete`)
 
     expect(res.status).toBe(302)
     expect(res.headers.location).toBe('/books')
 
-    const missing = await request(app).get(`/books/${id}`)
+    const missing = await api.get(`/books/${id}`)
     expect(missing.status).toBe(404)
   })
 
   it('returns 404 when deleting a missing book', async () => {
-    const res = await request(app).post('/books/999999/delete')
+    const res = await api.post('/books/999999/delete')
 
     expect(res.status).toBe(404)
     expect(res.text).toContain('Book not found')
   })
 
   it.each(['abc', '0', '-1'])('returns 404 for invalid id %s', async (id) => {
-    const res = await request(app).post(`/books/${id}/delete`)
+    const res = await api.post(`/books/${id}/delete`)
 
     expect(res.status).toBe(404)
     expect(res.text).toContain('Book not found')

@@ -32,10 +32,12 @@ sudo chown -R book-camera-deploy:book-camera-deploy /opt/book-camera/api
 sudo chmod 600 /opt/book-camera/api/.env
 
 # Step 7: limited passwordless sudo for restart/status only
-sudo visudo -f /etc/sudoers.d/deploy-book-camera-api
-# add this line:
-# book-camera-deploy ALL=(root) NOPASSWD: /bin/systemctl restart book-camera-api, /bin/systemctl status book-camera-api
+# (setup.sh installs this automatically; run by hand if the droplet predates that)
+SYSTEMCTL="$(command -v systemctl)"
+echo "book-camera-deploy ALL=(root) NOPASSWD: ${SYSTEMCTL} restart book-camera-api, ${SYSTEMCTL} status book-camera-api, ${SYSTEMCTL} status book-camera-api --no-pager" \
+  | sudo tee /etc/sudoers.d/deploy-book-camera-api > /dev/null
 sudo chmod 440 /etc/sudoers.d/deploy-book-camera-api
+sudo visudo -cf /etc/sudoers.d/deploy-book-camera-api
 ```
 
 Keep the private key out of git. Add `book-camera-deploy-key*` to your local ignore habits if you store it next to the repo.

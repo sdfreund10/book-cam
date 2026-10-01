@@ -9,6 +9,7 @@ The site is a progressive web app. On a phone, use **Add to Home Screen** (Safar
 | Path | What it does |
 |------|----------------|
 | `/` | Redirects to `/books` |
+| `/login` | Password prompt; sets a long-lived session cookie |
 | `/books` | List |
 | `/books/scan` | Photograph or pick a cover, then pre-fill a new book |
 | `/books/new` | Add a book by hand |
@@ -21,12 +22,26 @@ There is no separate native app and no JSON `/api/books` surface. Forms post bac
 
 ## Local development
 
+Postgres must already be running locally. Create the role and database once:
+
 ```sh
-cp .env.example .env   # set DATABASE_URL and any API keys
-npm install
-npm run db:push:dev
-npm run dev
+createuser -P book_camera          # password: book_camera
+createdb -O book_camera book_camera_development
+createdb -O book_camera book_camera_test   # only needed for `npm test`
 ```
+
+Then from `api/`:
+
+```sh
+cp .env.example .env   # set DATABASE_URL, APP_PASSWORD, and any API keys
+npm install
+npm run db:push:dev    # create the books/users tables
+npm run dev            # http://localhost:4000  (PORT in .env)
+```
+
+`/` redirects to `/books`, which asks for `APP_PASSWORD` once, then lists books. If that page 500s with an internal server error, the development database or tables are missing — run the `createdb` / `db:push:dev` steps above.
+
+Set `APP_PASSWORD` to a shared secret. The web UI asks for it once, then keeps a session cookie on that browser until the password changes.
 
 Open `http://localhost:4000`. Cover scan works in a phone browser against that origin when the machine is reachable on your LAN.
 
@@ -44,7 +59,7 @@ git clone https://github.com/OWNER/REPO.git && cd REPO/api
 sudo ./deploy/setup.sh
 ```
 
-`setup.sh` prompts for port, public domain, Postgres user/database/password, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs system packages, creates the database and `book-camera-deploy` user, and installs the systemd unit and nginx reverse proxy. It does **not** build TypeScript or run `npm ci` (CI ships `dist/` and production `node_modules/` to avoid OOM on small droplets).
+`setup.sh` prompts for port, public domain, Postgres user/database/password, `APP_PASSWORD`, `ANTHROPIC_API_KEY`, and `BUGSNAG_API_KEY` (API keys may be left blank; other prompts have defaults). It installs system packages, creates the database and `book-camera-deploy` user, and installs the systemd unit and nginx reverse proxy. It does **not** build TypeScript or run `npm ci` (CI ships `dist/` and production `node_modules/` to avoid OOM on small droplets).
 
 Schema changes for production must be committed as generated migrations (`npm run db:migration:generate`). Local `db:push:dev` does not create migration files.
 
@@ -64,7 +79,7 @@ sudo ./deploy/start.sh
 
 Enables and starts Postgres, the API, and nginx. Later deploys only need `activate.sh` (invoked by Actions).
 
-Optional TLS (needed for install-as-app):
+Required TLS (login sends the shared password; also needed for install-as-app). `ssl-setup.sh` asks certbot to add HTTPS and redirect HTTP:
 
 ```sh
 sudo ./deploy/ssl-setup.sh api.example.com

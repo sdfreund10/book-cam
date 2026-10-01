@@ -2,8 +2,10 @@ import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
 import { createApp } from '../src/app.js'
+import { authed } from './helpers/authed.js'
 
 const app = createApp()
+const signedIn = authed(app)
 
 describe('PWA assets', () => {
   it('serves the web app manifest', async () => {
@@ -36,7 +38,7 @@ describe('PWA assets', () => {
   })
 
   it('links install metadata from HTML pages', async () => {
-    const res = await request(app).get('/books')
+    const res = await signedIn.get('/books')
 
     expect(res.status).toBe(200)
     expect(res.text).toContain('viewport-fit=cover')
@@ -48,7 +50,7 @@ describe('PWA assets', () => {
   })
 
   it('loads the scan helper from a static script', async () => {
-    const res = await request(app).get('/books/scan')
+    const res = await signedIn.get('/books/scan')
 
     expect(res.status).toBe(200)
     expect(res.text).toContain('src="/scan.js"')

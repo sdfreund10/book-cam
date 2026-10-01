@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import request from 'supertest'
 
 vi.mock('../src/services/identifyBookFromCover.js', () => ({
   identifyBookFromCover: vi.fn()
@@ -7,9 +6,11 @@ vi.mock('../src/services/identifyBookFromCover.js', () => ({
 
 const { identifyBookFromCover } = await import('../src/services/identifyBookFromCover.js')
 const { createApp } = await import('../src/app.js')
+const { authed } = await import('./helpers/authed.js')
 
 const mockedIdentify = vi.mocked(identifyBookFromCover)
 const app = createApp()
+const request = authed(app)
 
 const tinyJpeg = Buffer.from(
   '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z',
@@ -31,7 +32,7 @@ describe('POST /books/scan', () => {
   })
 
   it('returns 400 when the cover field is missing', async () => {
-    const res = await request(app).post('/books/scan')
+    const res = await request.post('/books/scan')
 
     expect(res.status).toBe(400)
     expect(res.text).toContain('Please choose a photo of a book cover to scan.')
@@ -39,7 +40,7 @@ describe('POST /books/scan', () => {
   })
 
   it('returns 400 when the upload is not an image', async () => {
-    const res = await request(app)
+    const res = await request
       .post('/books/scan')
       .attach('cover', Buffer.from('not-an-image'), {
         filename: 'notes.txt',
@@ -52,7 +53,7 @@ describe('POST /books/scan', () => {
   })
 
   it('returns 400 when the wrong field name is used', async () => {
-    const res = await request(app)
+    const res = await request
       .post('/books/scan')
       .attach('photo', tinyJpeg, {
         filename: 'cover.jpg',
@@ -66,7 +67,7 @@ describe('POST /books/scan', () => {
   })
 
   it('pre-fills the new-book form for a valid JPEG', async () => {
-    const res = await request(app)
+    const res = await request
       .post('/books/scan')
       .attach('cover', tinyJpeg, {
         filename: 'cover.jpg',
@@ -85,7 +86,7 @@ describe('POST /books/scan', () => {
   it('returns 400 when the image exceeds 8MB', async () => {
     const oversized = Buffer.alloc(8 * 1024 * 1024 + 1, 0xff)
 
-    const res = await request(app)
+    const res = await request
       .post('/books/scan')
       .attach('cover', oversized, {
         filename: 'huge.jpg',

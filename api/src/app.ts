@@ -6,7 +6,9 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 
 import { bugsnagErrorHandler, bugsnagRequestHandler } from './middleware/bugsnag.js'
+import { requireAuth } from './middleware/requireAuth.js'
 import { healthRouter } from './routes/health.js'
+import { loginRouter } from './routes/login.js'
 import { booksViewRouter } from './routes/booksView.js'
 import { notFoundHandler } from './middleware/notFound.js'
 import { errorHandler } from './middleware/errorHandler.js'
@@ -17,6 +19,10 @@ const moduleDir = path.dirname(fileURLToPath(import.meta.url))
 export function createApp (): express.Express {
   const app = express()
 
+  // nginx sets X-Forwarded-Proto / X-Forwarded-For; needed for Secure cookies
+  // (req.secure) and per-IP login rate limits (req.ip).
+  app.set('trust proxy', 1)
+
   // Must be first so BugSnag can capture errors from downstream middleware.
   app.use(bugsnagRequestHandler)
 
@@ -26,16 +32,23 @@ export function createApp (): express.Express {
   // Available to every view as `buildLibrarySearchUrl(title)`.
   app.locals.buildLibrarySearchUrl = buildLibrarySearchUrl
 
+  const cspDirectives = { ...helmet.contentSecurityPolicy.getDefaultDirectives() }
+  cspDirectives['img-src'] = ["'self'", 'data:', 'https:']
+  cspDirectives['manifest-src'] = ["'self'"]
+  cspDirectives['worker-src'] = ["'self'"]
+  // Local HTTP (and tests) must not upgrade assets to https. Production
+  // login is HTTPS-only, so keep the default upgrade there.
+  if (process.env.NODE_ENV !== 'production') {
+    delete cspDirectives['upgrade-insecure-requests']
+  }
+
   app.use(
     helmet({
       contentSecurityPolicy: {
-        directives: {
-          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-          'img-src': ["'self'", 'data:', 'https:'],
-          'manifest-src': ["'self'"],
-          'worker-src': ["'self'"]
-        }
-      }
+        useDefaults: false,
+        directives: cspDirectives
+      },
+      strictTransportSecurity: process.env.NODE_ENV === 'production'
     })
   )
   if (process.env.NODE_ENV !== 'test') {
@@ -51,7 +64,8 @@ export function createApp (): express.Express {
   }))
 
   app.use('/health', healthRouter)
-  app.use('/books', booksViewRouter)
+  app.use('/login', loginRouter)
+  app.use('/books', requireAuth, booksViewRouter)
 
   app.get('/', (_req, res) => res.redirect('/books'))
 

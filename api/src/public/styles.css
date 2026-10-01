@@ -344,6 +344,14 @@ h1 {
   background: #fbeceb;
 }
 
+.login-container {
+  max-width: 420px;
+}
+
+.login-form h1 {
+  margin-bottom: 0.25rem;
+}
+
 @media (max-width: 40rem) {
   .site-header {
     flex-wrap: wrap;
