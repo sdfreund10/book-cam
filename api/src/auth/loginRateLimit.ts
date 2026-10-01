@@ -12,7 +12,7 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>()
 
-const expireBuckets = () => {
+const expireBuckets = (): void => {
   for (const [key, bucket] of buckets.entries()) {
     if (bucket.resetAt <= Date.now()) {
       buckets.delete(key)
