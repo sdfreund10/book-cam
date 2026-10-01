@@ -12,6 +12,14 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>()
 
+const expireBuckets = () => {
+  for (const [key, bucket] of buckets.entries()) {
+    if (bucket.resetAt <= Date.now()) {
+      buckets.delete(key)
+    }
+  }
+}
+
 export function resetLoginRateLimit (): void {
   buckets.clear()
 }
@@ -27,6 +35,7 @@ export function isLoginRateLimited (req: Request): boolean {
 }
 
 export function recordFailedLogin (req: Request): void {
+  expireBuckets()
   const key = clientKey(req)
   const now = Date.now()
   const existing = buckets.get(key)
